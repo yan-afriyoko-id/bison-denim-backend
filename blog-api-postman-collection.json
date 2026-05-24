@@ -1,0 +1,779 @@
+{
+  "info": {
+    "_postman_id": "blog-api-collection-2025",
+    "name": "Blog API Collection - Complete",
+    "description": "Complete collection for testing Blog and Category Blog API endpoints with Laravel Repository Pattern. Includes authentication, all CRUD operations, and sample data.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('token', response.data.token);",
+                  "        console.log('User registered and token set');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"New User\",\n    \"email\": \"newuser@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('token', response.data.token);",
+                  "        pm.collectionVariables.set('user_id', response.data.user.id);",
+                  "        console.log('Login successful - Token: ' + response.data.token);",
+                  "    }",
+                  "}",
+                  "if (pm.response.code !== 200) {",
+                  "    console.log('Login failed: ' + JSON.stringify(pm.response.json()));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with email and password to get authentication token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Get information about the currently authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout and invalidate the current token"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for user registration, login, and token management"
+    },
+    {
+      "name": "Category Blog API",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs"
+              ]
+            },
+            "description": "Get all blog categories from the database with full details"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs/active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs",
+                "active"
+              ]
+            },
+            "description": "Get only active blog categories (status = true)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs",
+                "1"
+              ]
+            },
+            "description": "Get a specific category by ID. Replace '1' with the actual category ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by Slug",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs/slug/teknologi",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs",
+                "slug",
+                "teknologi"
+              ]
+            },
+            "description": "Get a specific category by slug. Available slugs: teknologi, bisnis, lifestyle, pendidikan"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.category) {",
+                  "        pm.collectionVariables.set('category_id', response.data.category.id);",
+                  "        console.log('Category created with ID: ' + response.data.category.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Travel\",\n    \"slug\": \"travel\",\n    \"description\": \"Tips dan cerita perjalanan ke berbagai tempat menarik di dunia\",\n    \"status\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs"
+              ]
+            },
+            "description": "Create a new blog category. The ID will be stored in category_id variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Travel & Adventure\",\n    \"slug\": \"travel-adventure\",\n    \"description\": \"Tips, cerita perjalanan, dan panduan petualangan ke berbagai tempat eksotis di dunia\",\n    \"status\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs",
+                "{{category_id}}"
+              ]
+            },
+            "description": "Update an existing category. Uses category_id variable (can be changed manually)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/category-blogs/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "category-blogs",
+                "{{category_id}}"
+              ]
+            },
+            "description": "Delete a category by ID. Uses category_id variable"
+          },
+          "response": []
+        }
+      ],
+      "description": "Complete CRUD operations for blog categories including create, read, update, and delete"
+    },
+    {
+      "name": "Blog API",
+      "item": [
+        {
+          "name": "Get All Blogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs"
+              ]
+            },
+            "description": "Get all blog posts from the database with category information"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Blogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs/active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "active"
+              ]
+            },
+            "description": "Get only active blog posts (status = true)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hot News Blogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs/hot-news",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "hot-news"
+              ]
+            },
+            "description": "Get blogs marked as hot news and active (for featured content)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blogs by Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs/category/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "category",
+                "1"
+              ]
+            },
+            "description": "Get all blogs in a specific category by category ID. Replace '1' with actual category ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog by Slug",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs/slug/sample-blog-title",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "slug",
+                "sample-blog-title"
+              ]
+            },
+            "description": "Get a blog post by its slug (URL-friendly identifier)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "1"
+              ]
+            },
+            "description": "Get a specific blog post by ID. Replace '1' with actual blog ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Blog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.blog) {",
+                  "        pm.collectionVariables.set('blog_id', response.data.blog.id);",
+                  "        console.log('Blog created with ID: ' + response.data.blog.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"cover\": \"https://via.placeholder.com/800x400?text=Blog+Cover\",\n    \"title\": \"10 Tips Memulai Bisnis Digital di Era Modern\",\n    \"short_desc\": \"Panduan lengkap untuk pemula yang ingin memulai bisnis digital dengan strategi yang tepat dan efektif.\",\n    \"long_desc\": \"Dalam era digital ini, banyak peluang bisnis yang dapat dimanfaatkan. Artikel ini akan membahas 10 tips penting untuk memulai bisnis digital Anda. Dari memilih niche yang tepat, membuat strategi pemasaran, hingga cara menggunakan media sosial secara efektif. Kami juga akan membahas tentang pentingnya konsistensi dan kesabaran dalam membangun bisnis digital. Semua ini dilengkapi dengan contoh-contoh nyata dari pengusaha sukses di Indonesia.\",\n    \"fk_category\": 2,\n    \"slug\": \"10-tips-memulai-bisnis-digital\",\n    \"status\": true,\n    \"hot_news\": true,\n    \"meta_title\": \"10 Tips Memulai Bisnis Digital - Panduan Lengkap 2025\",\n    \"meta_description\": \"Pelajari 10 tips penting untuk memulai bisnis digital Anda. Strategi efektif dari para ahli untuk sukses di era modern.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/blogs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs"
+              ]
+            },
+            "description": "Create a new blog post. Category ID 2 is 'Bisnis'. The created blog ID will be stored in blog_id variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Blog",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"cover\": \"https://via.placeholder.com/800x400?text=Updated+Blog\",\n    \"title\": \"15 Tips Memulai Bisnis Digital di Era Modern (Updated)\",\n    \"short_desc\": \"Panduan terbaru dan paling lengkap untuk pemula yang ingin memulai bisnis digital dengan strategi winning.\",\n    \"long_desc\": \"Update versi terbaru dengan 15 tips eksklusif untuk memulai bisnis digital. Kami telah menambahkan tips-tips baru berdasarkan feedback dari ribuan pembaca. Panduan ini mencakup strategi terbaru di tahun 2025 termasuk AI dan automation untuk bisnis digital Anda.\",\n    \"fk_category\": 2,\n    \"slug\": \"15-tips-memulai-bisnis-digital-updated\",\n    \"status\": true,\n    \"hot_news\": false,\n    \"meta_title\": \"15 Tips Memulai Bisnis Digital 2025 - Edisi Terbaru\",\n    \"meta_description\": \"Update terbaru: 15 tips memulai bisnis digital dengan strategi AI dan automation untuk maksimal profit.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/blogs/{{blog_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "{{blog_id}}"
+              ]
+            },
+            "description": "Update an existing blog post. Uses blog_id variable from the last created blog"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Blog",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/blogs/{{blog_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "blogs",
+                "{{blog_id}}"
+              ]
+            },
+            "description": "Delete a blog post by ID. Uses blog_id variable"
+          },
+          "response": []
+        }
+      ],
+      "description": "Complete CRUD operations for blog posts with filtering options"
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Base URL untuk API. Ubah sesuai dengan URL aplikasi Anda."
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Bearer token dari login (akan diisi otomatis setelah login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "ID user yang sedang login (diisi otomatis)"
+    },
+    {
+      "key": "category_id",
+      "value": "1",
+      "type": "string",
+      "description": "Category ID untuk testing. Default: 1 (Teknologi). Update sesuai kebutuhan."
+    },
+    {
+      "key": "blog_id",
+      "value": "1",
+      "type": "string",
+      "description": "Blog ID untuk testing. Default: 1. Update sesuai kebutuhan atau akan terisi otomatis setelah create."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// This runs before each request"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set token from login response",
+          "if (pm.response.code === 200 && pm.request.url.path.includes('login')) {",
+          "    try {",
+          "        const response = pm.response.json();",
+          "        if (response.success && response.data && response.data.token) {",
+          "            pm.collectionVariables.set('token', response.data.token);",
+          "            console.log('✓ Token set successfully');",
+          "        }",
+          "    } catch (e) {",
+          "        console.log('Error parsing login response');",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}
