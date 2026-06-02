@@ -27,7 +27,15 @@ return new class extends Migration
             $table->string('shipping_last_name', 250)->nullable();
             $table->longText('shipping_address');
             $table->string('shipping_city', 250);
+            $table->integer('shipping_city_id')->nullable()->comment('ID kota/kabupaten shipping dari RajaOngkir');
+            $table->string('shipping_city_label', 250)->nullable()->comment('Nama kota/kabupaten shipping untuk display');
             $table->string('shipping_province', 250);
+            $table->integer('shipping_province_id')->nullable()->comment('ID provinsi shipping dari RajaOngkir');
+            $table->string('shipping_province_label', 250)->nullable()->comment('Nama provinsi shipping untuk display');
+            $table->integer('shipping_district_id')->nullable()->comment('ID kecamatan shipping dari RajaOngkir');
+            $table->string('shipping_district_label', 250)->nullable()->comment('Nama kecamatan shipping untuk display');
+            $table->integer('shipping_sub_district_id')->nullable()->comment('ID kelurahan shipping dari RajaOngkir');
+            $table->string('shipping_sub_district_label', 250)->nullable()->comment('Nama kelurahan shipping untuk display');
             $table->string('shipping_postal_code', 250);
             $table->string('shipping_label_place', 250)->nullable()->comment('Label tempat (Rumah, Kantor, dll)');
             $table->string('shipping_note_address', 250)->nullable()->comment('Catatan alamat pengiriman');
@@ -38,7 +46,15 @@ return new class extends Migration
             $table->string('billing_last_name', 250)->nullable();
             $table->longText('billing_address')->nullable();
             $table->string('billing_city', 250)->nullable();
+            $table->integer('billing_city_id')->nullable()->comment('ID kota/kabupaten billing dari RajaOngkir');
+            $table->string('billing_city_label', 250)->nullable()->comment('Nama kota/kabupaten billing untuk display');
             $table->string('billing_province', 250)->nullable();
+            $table->integer('billing_province_id')->nullable()->comment('ID provinsi billing dari RajaOngkir');
+            $table->string('billing_province_label', 250)->nullable()->comment('Nama provinsi billing untuk display');
+            $table->integer('billing_district_id')->nullable()->comment('ID kecamatan billing dari RajaOngkir');
+            $table->string('billing_district_label', 250)->nullable()->comment('Nama kecamatan billing untuk display');
+            $table->integer('billing_sub_district_id')->nullable()->comment('ID kelurahan billing dari RajaOngkir');
+            $table->string('billing_sub_district_label', 250)->nullable()->comment('Nama kelurahan billing untuk display');
             $table->string('billing_postal_code', 250)->nullable();
             $table->string('billing_label_place', 250)->nullable();
             $table->string('billing_note_address', 250)->nullable();
@@ -64,7 +80,9 @@ return new class extends Migration
             // Order Totals
             $table->integer('subtotal')->default(0)->comment('Subtotal produk (sebelum diskon)');
             $table->integer('discount_amount')->default(0)->comment('Total diskon');
+            $table->integer('points_used')->default(0);
             $table->integer('shipping_cost')->default(0)->comment('Biaya pengiriman');
+            $table->decimal('product_protection_price', 15, 2)->default(0);
             $table->integer('total_amount')->default(0)->comment('Total akhir yang harus dibayar');
             
             // Foreign Keys
@@ -83,6 +101,10 @@ return new class extends Migration
             $table->index('fk_user_id');
             $table->index('status');
             $table->index('payment_status');
+            $table->index('shipping_province_id');
+            $table->index('shipping_city_id');
+            $table->index('shipping_district_id');
+            $table->index('shipping_sub_district_id');
             $table->index('created_at');
         });
     }
@@ -95,5 +117,4 @@ return new class extends Migration
         Schema::dropIfExists('orders');
     }
 };
-
 

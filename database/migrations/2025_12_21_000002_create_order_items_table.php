@@ -18,6 +18,8 @@ return new class extends Migration
             $table->foreignId('fk_order_id')->constrained('orders')->onDelete('cascade');
             $table->foreignId('fk_product_id')->nullable()->constrained('products')->onDelete('set null');
             $table->foreignId('fk_variant_id')->nullable()->constrained('product_variants')->onDelete('set null');
+            $table->foreignId('store_id')->nullable()->constrained('stores')->onDelete('set null');
+            $table->foreignId('review_id')->nullable()->constrained('product_reviews')->onDelete('set null');
             
             // Product Information (snapshot saat order dibuat)
             $table->string('product_name', 250)->comment('Nama produk saat order dibuat');
@@ -34,6 +36,8 @@ return new class extends Migration
             
             // Additional Information
             $table->longText('note')->nullable()->comment('Catatan khusus untuk item ini');
+            $table->decimal('product_protection_percent', 5, 2)->nullable();
+            $table->decimal('product_protection_amount', 15, 2)->nullable();
             
             $table->timestamps();
             
@@ -41,6 +45,7 @@ return new class extends Migration
             $table->index('fk_order_id');
             $table->index('fk_product_id');
             $table->index('fk_variant_id');
+            $table->index('store_id');
         });
     }
 
@@ -52,5 +57,4 @@ return new class extends Migration
         Schema::dropIfExists('order_items');
     }
 };
-
 

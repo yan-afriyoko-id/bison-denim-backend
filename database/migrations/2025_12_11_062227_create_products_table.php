@@ -46,6 +46,7 @@ return new class extends Migration
             $table->enum('is_freeshiping', ['ACTIVE', 'INACTIVE'])->default('INACTIVE');
             $table->integer('sort')->default(0)->comment('Nomor urut untuk sorting');
             $table->string('tags')->nullable()->comment('Tag produk (comma-separated)');
+            $table->unsignedTinyInteger('product_protection_percent')->nullable()->default(10);
             $table->enum('status', ['PUBLISH', 'INACTIVE', 'DRAFT'])->default('DRAFT');
             
             $table->timestamps();

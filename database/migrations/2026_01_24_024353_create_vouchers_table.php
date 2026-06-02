@@ -19,11 +19,14 @@ return new class extends Migration
             $table->string('status')->default('ACTIVE');
             $table->integer('limit_user')->nullable();
             $table->integer('voucher_used')->default(0);
-            $table->date('start_date')->nullable();
-            $table->date('end_date')->nullable();
+            $table->dateTime('start_date')->nullable();
+            $table->dateTime('end_date')->nullable();
             $table->enum('discount_type', ['PERCENTAGE', 'FIXED'])->default('FIXED');
             $table->decimal('discount_value', 15, 2);
+            $table->unsignedBigInteger('min_purchase')->default(0);
+            $table->boolean('is_published')->default(true);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

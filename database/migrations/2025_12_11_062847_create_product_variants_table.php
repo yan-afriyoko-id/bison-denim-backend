@@ -19,12 +19,15 @@ return new class extends Migration
             $table->string('sku')->nullable();
             $table->string('image_path')->nullable();
             $table->decimal('price', 15, 2)->nullable()->comment('Harga transaksi variant');
+            $table->decimal('weight', 10, 2)->nullable()->comment('Berat per unit (misal gram atau kg)');
+            $table->enum('type_weight', ['GRAM', 'KG'])->default('GRAM')->comment('Satuan berat');
             $table->decimal('strike_price', 15, 2)->nullable()->comment('Harga yang dicoret/strike price (optional)');
             $table->decimal('discount_percent', 5, 2)->nullable()->comment('Persentase diskon (dihitung otomatis di BE)');
             $table->boolean('is_ignore_stock')->default(false);
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             
             $table->timestamps();
+            $table->softDeletes();
             
             // Indexes
             $table->index('fk_product_id');

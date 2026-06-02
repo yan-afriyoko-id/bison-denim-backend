@@ -19,12 +19,15 @@ return new class extends Migration
             $table->string('phone', 50)->nullable();
             $table->text('address')->nullable();
             $table->string('city', 100)->nullable();
+            $table->integer('city_id')->nullable()->comment('City ID from RajaOngkir for shipping cost calculation');
             $table->string('province', 100)->nullable();
             $table->string('country', 100)->nullable();
             $table->string('postal_code', 20)->nullable();
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->text('description')->nullable();
             $table->timestamps();
+
+            $table->index('city_id');
         });
     }
 

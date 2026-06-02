@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('brands', function (Blueprint $table) {
             $table->id();
             $table->string('name', 250);
+            $table->string('slug', 250)->unique();
             $table->string('logo', 500)->nullable(); // Path to uploaded logo image
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->integer('order')->default(0); // For ordering brands

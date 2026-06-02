@@ -23,6 +23,7 @@ return new class extends Migration
             $table->enum('gender', ['MALE', 'FEMALE']);
             $table->longText('erp_remember_token')->nullable()->comment('for store user token from api');
             $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('phone_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();

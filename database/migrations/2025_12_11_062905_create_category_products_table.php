@@ -16,6 +16,10 @@ return new class extends Migration
             $table->unsignedBigInteger('fk_product_id');
             $table->foreignId('fk_category_id')->constrained('taxo_lists')->onDelete('cascade');
             $table->timestamps();
+            $table->foreign('fk_product_id')
+                ->references('id')
+                ->on('products')
+                ->onDelete('cascade');
             
             // Unique constraint untuk mencegah duplikasi
             $table->unique(['fk_product_id', 'fk_category_id'], 'cp_prod_id_cat_id_unique');
@@ -34,4 +38,3 @@ return new class extends Migration
         Schema::dropIfExists('category_products');
     }
 };
-
