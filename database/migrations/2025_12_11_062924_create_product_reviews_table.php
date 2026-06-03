@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('fk_product_id')->constrained('products')->onDelete('cascade');
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null')->comment('Nullable untuk anonymous review');
+            $table->unsignedBigInteger('order_item_id')->nullable();
             $table->integer('rating')->comment('Rating 1-5');
             $table->text('comment')->nullable()->comment('Komentar review');
             $table->date('review_date')->comment('Tanggal review');
@@ -24,8 +25,10 @@ return new class extends Migration
             // Indexes
             $table->index('fk_product_id');
             $table->index('user_id');
+            $table->index('order_item_id');
             $table->index('rating');
             $table->index('review_date');
+            $table->unique(['user_id', 'order_item_id'], 'unique_user_order_item_review');
         });
     }
 

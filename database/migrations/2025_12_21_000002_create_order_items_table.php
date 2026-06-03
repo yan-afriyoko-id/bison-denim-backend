@@ -47,6 +47,13 @@ return new class extends Migration
             $table->index('fk_variant_id');
             $table->index('store_id');
         });
+
+        Schema::table('product_reviews', function (Blueprint $table) {
+            $table->foreign('order_item_id')
+                ->references('id')
+                ->on('order_items')
+                ->onDelete('cascade');
+        });
     }
 
     /**
@@ -54,7 +61,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('product_reviews', function (Blueprint $table) {
+            $table->dropForeign(['order_item_id']);
+        });
+
         Schema::dropIfExists('order_items');
     }
 };
-

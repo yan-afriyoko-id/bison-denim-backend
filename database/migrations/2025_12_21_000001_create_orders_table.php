@@ -88,10 +88,9 @@ return new class extends Migration
             // Foreign Keys
             $table->foreignId('fk_user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->unsignedBigInteger('fk_voucher_id')->nullable()->comment('Voucher yang digunakan (jika ada)');
-            // Note: Foreign key untuk vouchers akan ditambahkan jika tabel vouchers sudah dibuat
             
             // Order Status
-            $table->enum('status', ['ORDER', 'PAYMENT', 'PROCESS', 'SHIPPED', 'COMPLETE', 'CANCELLED'])->default('ORDER');
+            $table->enum('status', ['PENDING', 'PACKING', 'DELIVERING', 'DELIVERED', 'COMPLETED', 'CANCELLED'])->default('PENDING');
             
             $table->timestamps();
             $table->softDeletes();
@@ -117,4 +116,3 @@ return new class extends Migration
         Schema::dropIfExists('orders');
     }
 };
-

@@ -28,6 +28,13 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+
+        Schema::table('orders', function (Blueprint $table) {
+            $table->foreign('fk_voucher_id')
+                ->references('id')
+                ->on('vouchers')
+                ->onDelete('set null');
+        });
     }
 
     /**
@@ -35,6 +42,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropForeign(['fk_voucher_id']);
+        });
+
         Schema::dropIfExists('vouchers');
     }
 };
