@@ -82,7 +82,6 @@ return new class extends Migration
             $table->integer('discount_amount')->default(0)->comment('Total diskon');
             $table->integer('points_used')->default(0);
             $table->integer('shipping_cost')->default(0)->comment('Biaya pengiriman');
-            $table->decimal('product_protection_price', 15, 2)->default(0);
             $table->integer('total_amount')->default(0)->comment('Total akhir yang harus dibayar');
             
             // Foreign Keys
