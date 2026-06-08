@@ -8,6 +8,7 @@ use App\Models\ProductVariantStock;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 
 class ProductVariantController extends Controller
@@ -94,7 +95,11 @@ class ProductVariantController extends Controller
             $validated = $request->validate([
                 'fk_product_id' => 'required|integer|exists:products,id',
                 'variant_name' => 'nullable|string|max:250',
-                'sku' => 'nullable|string|unique:product_variants',
+                'sku' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('product_variants', 'sku')->whereNull('deleted_at'),
+                ],
                 'image_path' => 'nullable|string',
                 'price' => 'required|numeric|min:0',
                 'strike_price' => 'nullable|numeric|min:0',
@@ -175,7 +180,13 @@ class ProductVariantController extends Controller
             $validated = $request->validate([
                 'fk_product_id' => 'sometimes|required|integer|exists:products,id',
                 'variant_name' => 'nullable|string|max:250',
-                'sku' => 'nullable|string|unique:product_variants,sku,' . $id,
+                'sku' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('product_variants', 'sku')
+                        ->ignore($id)
+                        ->whereNull('deleted_at'),
+                ],
                 'image_path' => 'nullable|string',
                 'price' => 'sometimes|required|numeric|min:0',
                 'strike_price' => 'nullable|numeric|min:0',
@@ -267,6 +278,13 @@ class ProductVariantController extends Controller
                 ], 422);
             }
             $deleted = $this->variantRepository->delete($id);
+
+            if (!$deleted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete product variant',
+                ], 500);
+            }
 
             return response()->json([
                 'success' => true,

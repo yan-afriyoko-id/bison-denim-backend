@@ -195,13 +195,17 @@ class ProductVariantRepository
      */
     public function delete(int $id): bool
     {
-        $variant = $this->findById($id);
+        $variant = ProductVariant::find($id);
 
         if (!$variant) {
             return false;
         }
 
-        return $variant->delete();
+        // Hapus relasi terlebih dahulu karena DB cascade tidak trigger pada soft delete
+        ProductVariantOption::where('variant_id', $id)->delete();
+        ProductVariantStock::where('variant_id', $id)->delete();
+
+        return (bool) $variant->forceDelete();
     }
 
     /**
