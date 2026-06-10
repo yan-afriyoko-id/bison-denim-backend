@@ -16,28 +16,28 @@ class BrandSeeder extends Seeder
 
         $brands = [
             [
-                'name' => 'Karsindo',
-                'slug' => 'karsindo',
-                'logo' => $baseUrl . '/uploads/brands/karsindo.png',
+                'name' => 'Denim Republic',
+                'slug' => 'denim-republic',
+                'logo' => "$baseUrl/uploads/brands/denim-republic.png",
                 'status' => 'ACTIVE',
                 'order' => 1,
-                'description' => 'Karsindo brand',
+                'description' => 'A premium denim label specializing in high-quality jeans, jackets, and workwear essentials.',
             ],
             [
-                'name' => 'Karstech',
-                'slug' => 'karstech',
-                'logo' => $baseUrl . '/uploads/brands/karstech.png',
+                'name' => 'Blue Stone',
+                'slug' => 'blue-stone',
+                'logo' => "$baseUrl/uploads/brands/blue-stone.png",
                 'status' => 'ACTIVE',
                 'order' => 2,
-                'description' => 'Karstech brand',
+                'description' => 'A casual wear label offering comfortable everyday clothing with a clean, modern aesthetic.',
             ],
             [
-                'name' => 'Karvium',
-                'slug' => 'karvium',
-                'logo' => $baseUrl . '/uploads/brands/karvium.png',
+                'name' => 'Indigo Wear',
+                'slug' => 'indigo-wear',
+                'logo' => "$baseUrl/uploads/brands/indigo-wear.png",
                 'status' => 'ACTIVE',
                 'order' => 3,
-                'description' => 'Karvium brand',
+                'description' => 'A streetwear label rooted in urban culture, blending bold graphics with comfortable street-ready fits.',
             ],
         ];
 
