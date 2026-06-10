@@ -14,30 +14,30 @@ class CategoryBlogSeeder extends Seeder
     public function run(): void
     {
         CategoryBlog::create([
-            'name' => 'Teknologi',
-            'slug' => 'teknologi',
-            'description' => 'Artikel tentang perkembangan teknologi terkini',
+            'name' => 'Style Guide',
+            'slug' => 'style-guide',
+            'description' => 'Tips dan inspirasi mix & match outfit untuk berbagai kesempatan',
             'status' => true,
         ]);
 
         CategoryBlog::create([
-            'name' => 'Bisnis',
-            'slug' => 'bisnis',
-            'description' => 'Tips dan trik bisnis untuk pengusaha',
+            'name' => 'Trend Fashion',
+            'slug' => 'trend-fashion',
+            'description' => 'Update tren mode terkini dari runway hingga street style',
             'status' => true,
         ]);
 
         CategoryBlog::create([
-            'name' => 'Lifestyle',
-            'slug' => 'lifestyle',
-            'description' => 'Gaya hidup dan kesehatan',
+            'name' => 'Tips Perawatan',
+            'slug' => 'tips-perawatan',
+            'description' => 'Cara merawat pakaian agar tetap awet dan tampak baru',
             'status' => true,
         ]);
 
         CategoryBlog::create([
-            'name' => 'Pendidikan',
-            'slug' => 'pendidikan',
-            'description' => 'Artikel tentang dunia pendidikan',
+            'name' => 'Koleksi Terbaru',
+            'slug' => 'koleksi-terbaru',
+            'description' => 'Informasi dan ulasan koleksi pakaian terbaru dari Bison Denim',
             'status' => true,
         ]);
     }

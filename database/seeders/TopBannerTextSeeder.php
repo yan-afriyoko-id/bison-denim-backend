@@ -16,7 +16,7 @@ class TopBannerTextSeeder extends Seeder
             ['key' => 'topbanner'],
             [
                 'key' => 'topbanner',
-                'value' => 'Free Shipping JABODETABEK pembelanjaan Rp75.000+',
+                'value' => 'Free Shipping JABODETABEK pembelanjaan Rp150.000+ | New Arrival Denim Collection',
                 'description' => 'Text banner di atas website (top banner)',
                 'type' => 'text',
             ]

@@ -23,7 +23,6 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get or create default store
         $defaultStore = Store::firstOrCreate(
             ['code' => 'STORE-001'],
             [
@@ -33,584 +32,254 @@ class ProductSeeder extends Seeder
             ]
         );
 
-        // Create or get Attribute (Warna)
         $warnaAttribute = Attribute::firstOrCreate(
             ['slug' => 'warna'],
-            [
-                'name' => 'Warna',
-                'slug' => 'warna',
-                'sort' => 1,
-                'status' => 'ACTIVE',
-            ]
+            ['name' => 'Warna', 'slug' => 'warna', 'sort' => 1, 'status' => 'ACTIVE']
         );
 
-        // Create or get Attribute (Tipe)
-        $tipeAttribute = Attribute::firstOrCreate(
-            ['slug' => 'tipe'],
-            [
-                'name' => 'Tipe',
-                'slug' => 'tipe',
-                'sort' => 2,
-                'status' => 'ACTIVE',
-            ]
-        );
-
-        // Create or get Attribute (Ukuran)
         $ukuranAttribute = Attribute::firstOrCreate(
             ['slug' => 'ukuran'],
+            ['name' => 'Ukuran', 'slug' => 'ukuran', 'sort' => 2, 'status' => 'ACTIVE']
+        );
+
+        $product1 = Product::firstOrCreate(
+            ['slug' => 'celana-jeans-slim-fit-bd-001'],
             [
-                'name' => 'Ukuran',
-                'slug' => 'ukuran',
-                'sort' => 3,
-                'status' => 'ACTIVE',
+                'name' => 'Celana Jeans Slim Fit BD-001',
+                'slug' => 'celana-jeans-slim-fit-bd-001',
+                'is_freeshiping' => 'ACTIVE',
+                'product_information' => 'Celana jeans slim fit berbahan denim premium dengan potongan modern yang nyaman dipakai seharian.',
+                'meta_keywords' => 'celana jeans,slim fit,denim,bison denim',
+                'meta_description' => 'Celana Jeans Slim Fit premium dari Bison Denim. Bahan denim berkualitas tinggi, potongan slim fit yang stylish.',
+                'meta_title' => 'Celana Jeans Slim Fit BD-001 - Bison Denim',
+                'weight' => 0.5,
+                'type_weight' => 'KG',
+                'size_long' => 100,
+                'size_tall' => 2,
+                'size_wide' => 40,
+                'type_size' => 'CM',
+                'sort' => 1,
+                'tags' => 'celana jeans,slim fit,denim,pria',
+                'status' => 'PUBLISH',
+                'base_price' => 299000,
             ]
         );
 
-        // Product 1 - Lemari Pakaian minimalis TW 05
-        $product1 = Product::firstOrCreate([
-            'name' => 'Heim Studio MOKU Lemari',
-            'slug' => 'heim-studio-moku-lemari',
-            'is_freeshiping' => 'ACTIVE',
-            'product_information' => 'Heim Studio MOKU Lemari',
-            'meta_keywords' => 'heim studio,moku,lemari',
-            'meta_description' => 'Heim Studio MOKU Lemari',
-            'meta_title' => 'Heim Studio MOKU Lemari',
-            'weight' => 10,
-            'type_weight' => 'KG',
-            'size_long' => 80,
-            'size_tall' => 120,
-            'size_wide' => 40,
-            'type_size' => 'CM',
-            'sort' => 1,
-            'tags' => 'heim studio,moku,lemari',
-            'status' => 'PUBLISH',
-            'base_price' => 1669000,
-        ]);
-
-        // Add product 1 to category - Lemari Pakaian
-        $lemariPakaianCategory = TaxoList::where('taxonomy_slug', 'lemari-pakaian')
+        $celanaJeansCategory = TaxoList::where('taxonomy_slug', 'celana-jeans')
             ->where('taxonomy_type', 2)
             ->first();
-        if ($lemariPakaianCategory) {
+        if ($celanaJeansCategory) {
             ProductCategory::firstOrCreate([
                 'fk_product_id' => $product1->id,
-                'fk_category_id' => $lemariPakaianCategory->id
+                'fk_category_id' => $celanaJeansCategory->id,
             ]);
         }
 
-        // ========== PRODUCT 1 ATTRIBUTES SETUP ==========
-        // Create ProductAttribute for Warna
-        $product1WarnaAttribute = ProductAttribute::firstOrCreate(
-            [
-                'product_id' => $product1->id,
-                'attribute_id' => $warnaAttribute->id,
-            ],
-            [
-                'sort' => 1,
-            ]
+        $p1WarnaAttr = ProductAttribute::firstOrCreate(
+            ['product_id' => $product1->id, 'attribute_id' => $warnaAttribute->id],
+            ['sort' => 1]
+        );
+        $p1UkuranAttr = ProductAttribute::firstOrCreate(
+            ['product_id' => $product1->id, 'attribute_id' => $ukuranAttribute->id],
+            ['sort' => 2]
         );
 
-        // Create ProductAttribute for Tipe
-        $product1TipeAttribute = ProductAttribute::firstOrCreate(
+        $indigoValue = AttributeValue::firstOrCreate(
+            ['attribute_id' => $warnaAttribute->id, 'slug' => 'indigo'],
+            ['attribute_id' => $warnaAttribute->id, 'value' => 'Indigo', 'slug' => 'indigo', 'sort' => 1, 'status' => 'ACTIVE']
+        );
+        $hitamValue = AttributeValue::firstOrCreate(
+            ['attribute_id' => $warnaAttribute->id, 'slug' => 'hitam'],
+            ['attribute_id' => $warnaAttribute->id, 'value' => 'Hitam', 'slug' => 'hitam', 'sort' => 2, 'status' => 'ACTIVE']
+        );
+        $ukuranMValue = AttributeValue::firstOrCreate(
+            ['attribute_id' => $ukuranAttribute->id, 'slug' => 'ukuran-m'],
+            ['attribute_id' => $ukuranAttribute->id, 'value' => 'M', 'slug' => 'ukuran-m', 'sort' => 1, 'status' => 'ACTIVE']
+        );
+        $ukuranLValue = AttributeValue::firstOrCreate(
+            ['attribute_id' => $ukuranAttribute->id, 'slug' => 'ukuran-l'],
+            ['attribute_id' => $ukuranAttribute->id, 'value' => 'L', 'slug' => 'ukuran-l', 'sort' => 2, 'status' => 'ACTIVE']
+        );
+
+        foreach ([$indigoValue, $hitamValue] as $val) {
+            ProductAttributeValue::firstOrCreate([
+                'product_attribute_id' => $p1WarnaAttr->id,
+                'attribute_value_id' => $val->id,
+            ]);
+        }
+        foreach ([$ukuranMValue, $ukuranLValue] as $val) {
+            ProductAttributeValue::firstOrCreate([
+                'product_attribute_id' => $p1UkuranAttr->id,
+                'attribute_value_id' => $val->id,
+            ]);
+        }
+
+        // Variants: Indigo-M, Indigo-L, Hitam-M, Hitam-L
+        $p1Variants = [
+            ['name' => 'Indigo - M', 'sku' => 'BD-JEANS-SLIM-INDIGO-M', 'price' => 299000, 'warna' => $indigoValue, 'ukuran' => $ukuranMValue, 'qty' => 20],
+            ['name' => 'Indigo - L', 'sku' => 'BD-JEANS-SLIM-INDIGO-L', 'price' => 299000, 'warna' => $indigoValue, 'ukuran' => $ukuranLValue, 'qty' => 25],
+            ['name' => 'Hitam - M',  'sku' => 'BD-JEANS-SLIM-HITAM-M',  'price' => 309000, 'warna' => $hitamValue,  'ukuran' => $ukuranMValue, 'qty' => 18],
+            ['name' => 'Hitam - L',  'sku' => 'BD-JEANS-SLIM-HITAM-L',  'price' => 309000, 'warna' => $hitamValue,  'ukuran' => $ukuranLValue, 'qty' => 22],
+        ];
+
+        foreach ($p1Variants as $v) {
+            $variant = ProductVariant::firstOrCreate(
+                ['fk_product_id' => $product1->id, 'sku' => $v['sku']],
+                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'status' => 'ACTIVE',
+                 'image_path' => 'https://via.placeholder.com/600x800?text=Jeans+'.$v['name']]
+            );
+            ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $warnaAttribute->id, 'attribute_value_id' => $v['warna']->id]);
+            ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $ukuranAttribute->id, 'attribute_value_id' => $v['ukuran']->id]);
+            ProductVariantStock::firstOrCreate(['variant_id' => $variant->id, 'store_id' => $defaultStore->id], ['qty' => $v['qty'], 'reserved_qty' => 0]);
+        }
+
+        ProductImage::firstOrCreate(
+            ['fk_product_id' => $product1->id, 'order_number' => 1],
+            ['path' => 'https://via.placeholder.com/600x800?text=Celana+Jeans+BD-001', 'order_number' => 1, 'is_featured' => true]
+        );
+
+        // =====================================================
+        // Product 2 - Kemeja Flannel Kotak-Kotak
+        // =====================================================
+        $product2 = Product::firstOrCreate(
+            ['slug' => 'kemeja-flannel-kotak-kotak-bd-002'],
             [
-                'product_id' => $product1->id,
-                'attribute_id' => $tipeAttribute->id,
-            ],
-            [
+                'name' => 'Kemeja Flannel Kotak-Kotak BD-002',
+                'slug' => 'kemeja-flannel-kotak-kotak-bd-002',
+                'is_freeshiping' => 'ACTIVE',
+                'product_information' => 'Kemeja flannel motif kotak-kotak dengan bahan lembut dan hangat, cocok untuk tampilan kasual sehari-hari.',
+                'meta_keywords' => 'kemeja flannel,kotak-kotak,kasual,bison denim',
+                'meta_description' => 'Kemeja Flannel Kotak-Kotak BD-002 dari Bison Denim. Bahan lembut dan hangat untuk tampilan kasual.',
+                'meta_title' => 'Kemeja Flannel Kotak-Kotak BD-002 - Bison Denim',
+                'weight' => 0.3,
+                'type_weight' => 'KG',
+                'size_long' => 75,
+                'size_tall' => 2,
+                'size_wide' => 55,
+                'type_size' => 'CM',
                 'sort' => 2,
+                'tags' => 'kemeja,flannel,kotak,kasual',
+                'status' => 'PUBLISH',
+                'base_price' => 189000,
             ]
         );
 
-        // Create AttributeValues for Warna
-        $putihValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'slug' => 'putih',
-            ],
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'value' => 'Putih',
-                'slug' => 'putih',
-                'sort' => 1,
-                'status' => 'ACTIVE',
-            ]
-        );
-
-        $coklatValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'slug' => 'coklat',
-            ],
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'value' => 'Coklat',
-                'slug' => 'coklat',
-                'sort' => 2,
-                'status' => 'ACTIVE',
-            ]
-        );
-
-        // Create AttributeValues for Tipe
-        $Lemari6LaciValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $tipeAttribute->id,
-                'slug' => 'lemari-6-laci',
-            ],
-            [
-                'attribute_id' => $tipeAttribute->id,
-                'value' => 'Lemari 6 Laci',
-                'slug' => 'lemari-6-laci',
-                'sort' => 1,
-                'status' => 'ACTIVE',
-            ]
-        );
-
-        $LemariPakaian2PintuValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $tipeAttribute->id,
-                'slug' => 'lemari-pakaian-2-pintu',
-            ],
-            [
-                'attribute_id' => $tipeAttribute->id,
-                'value' => 'Lemari Pakaian 2 Pintu',
-                'slug' => 'lemari-pakaian-2-pintu',
-                'sort' => 2,
-                'status' => 'ACTIVE',
-            ]
-        );
-
-        // Link AttributeValues to ProductAttribute via ProductAttributeValue
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product1WarnaAttribute->id,
-            'attribute_value_id' => $putihValue->id,
-        ]);
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product1WarnaAttribute->id,
-            'attribute_value_id' => $coklatValue->id,
-        ]);
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product1WarnaAttribute->id,
-            'attribute_value_id' => $Lemari6LaciValue->id,
-        ]);
-
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product1TipeAttribute->id,
-            'attribute_value_id' => $LemariPakaian2PintuValue->id,
-        ]);
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product1TipeAttribute->id,
-            'attribute_value_id' => $Lemari6LaciValue->id,
-        ]);
-
-        // ========== PRODUCT 1 VARIANTS (4 combinations) ==========
-        // Variant 1: Putih + Lemari 6 Laci (1669000)
-        $product1Variant1 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product1->id,
-            'variant_name' => 'Putih - Lemari 6 Laci',
-            'sku' => 'HEIM-STUDIO-MOKU-LEMARI-6-LACI-PUTIH',
-            'price' => 1669000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-401093.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant1->id,
-            'attribute_id' => $warnaAttribute->id,
-            'attribute_value_id' => $putihValue->id,
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant1->id,
-            'attribute_id' => $tipeAttribute->id,
-            'attribute_value_id' => $Lemari6LaciValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product1Variant1->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 15,
-            'reserved_qty' => 0,
-        ]);
-
-        // Variant 2: Coklat + Lemari 6 Laci (1699000)
-        $product1Variant2 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product1->id,
-            'variant_name' => 'Coklat - Lemari 6 Laci',
-            'sku' => 'HEIM-STUDIO-MOKU-LEMARI-6-LACI-COKAT',
-            'price' => 1699000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-372626.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant2->id,
-            'attribute_id' => $warnaAttribute->id,
-            'attribute_value_id' => $coklatValue->id,
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant2->id,
-            'attribute_id' => $tipeAttribute->id,
-            'attribute_value_id' => $Lemari6LaciValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product1Variant2->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 20,
-            'reserved_qty' => 0,
-        ]);
-
-        // Variant 3: Putih + Lemari Pakaian 2 Pintu (2149000)
-        $product1Variant3 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product1->id,
-            'variant_name' => 'Putih - Lemari Pakaian 2 Pintu',
-            'sku' => 'HEIM-STUDIO-MOKU-LEMARI-2-PINTU-PUTIH',
-            'price' => 2149000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-401096.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant3->id,
-            'attribute_id' => $warnaAttribute->id,
-            'attribute_value_id' => $putihValue->id,
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant3->id,
-            'attribute_id' => $tipeAttribute->id,
-            'attribute_value_id' => $LemariPakaian2PintuValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product1Variant3->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 12,
-            'reserved_qty' => 0,
-        ]);
-
-        // Variant 4: Coklat + Lemari Pakaian 2 Pintu (349000)
-        $product1Variant4 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product1->id,
-            'variant_name' => 'Coklat - Lemari Pakaian 2 Pintu',
-            'sku' => 'HEIM-STUDIO-MOKU-LEMARI-2-PINTU-COKAT',
-            'price' => 2149000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-375453.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant4->id,
-            'attribute_id' => $warnaAttribute->id,
-            'attribute_value_id' => $coklatValue->id,
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product1Variant4->id,
-            'attribute_id' => $tipeAttribute->id,
-            'attribute_value_id' => $LemariPakaian2PintuValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product1Variant4->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 18,
-            'reserved_qty' => 0,
-        ]);
-
-        // Images for Product 1
-        ProductImage::firstOrCreate([
-            'fk_product_id' => $product1->id,
-            'path' => 'https://images.tokopedia.net/img/cache/700/VqbcmM/2023/6/2/2563406a-6919-4b8a-a1e7-f85774bfa392.jpg',
-            'order_number' => 1,
-            'is_featured' => true,
-        ]);
-
-
-        // Product 2 - Heim Studio CHOJI Bangku Pijak Lipat
-        $product2 = Product::firstOrCreate([
-            'name' => 'Heim Studio CHOJI Bangku Pijak Lipat',
-            'slug' => 'heim-studio-choji-bangku-pijak-lipat',
-            'is_freeshiping' => 'ACTIVE',
-            'product_information' => 'Heim Studio CHOJI Bangku Pijak Lipat',
-            'meta_keywords' => 'heim studio,choji,bangku,pijak,lipat',
-            'meta_description' => 'Heim Studio CHOJI Bangku Pijak Lipat',
-            'meta_title' => 'Heim Studio CHOJI Bangku Pijak Lipat',
-            'weight' => 1.8,
-            'type_weight' => 'KG',
-            'size_long' => 34,
-            'size_tall' => 23,
-            'size_wide' => 1.8,
-            'type_size' => 'CM',
-            'sort' => 2,
-            'tags' => 'heim studio,choji,bangku,pijak,lipat',
-            'status' => 'PUBLISH',
-            'base_price' => 59000,
-        ]);
-
-        // Add product 2 to category - Kursi
-        $kursiCategory = TaxoList::where('taxonomy_slug', 'kursi')
+        $kemejaCatergory = TaxoList::where('taxonomy_slug', 'kemeja')
             ->where('taxonomy_type', 2)
             ->first();
-        if ($kursiCategory) {
+        if ($kemejaCatergory) {
             ProductCategory::firstOrCreate([
                 'fk_product_id' => $product2->id,
-                'fk_category_id' => $kursiCategory->id
+                'fk_category_id' => $kemejaCatergory->id,
             ]);
         }
 
-        // Create ProductAttribute for Warna
-        $product2UkuranAttribute = ProductAttribute::firstOrCreate(
-            [
-                'product_id' => $product2->id,
-                'attribute_id' => $ukuranAttribute->id,
-            ],
-            [
-                'sort' => 1,
-            ]
+        $p2UkuranAttr = ProductAttribute::firstOrCreate(
+            ['product_id' => $product2->id, 'attribute_id' => $ukuranAttribute->id],
+            ['sort' => 1]
         );
 
-        // Create AttributeValue for Ukuran
-        $ukuran22CmValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $ukuranAttribute->id,
-                'slug' => '22-cm',
-            ],
-            [
-                'attribute_id' => $ukuranAttribute->id,
-                'value' => '22 CM',
-                'slug' => '22-cm',
-                'sort' => 1,
-                'status' => 'ACTIVE',
-            ]
+        $ukuranXLValue = AttributeValue::firstOrCreate(
+            ['attribute_id' => $ukuranAttribute->id, 'slug' => 'ukuran-xl'],
+            ['attribute_id' => $ukuranAttribute->id, 'value' => 'XL', 'slug' => 'ukuran-xl', 'sort' => 3, 'status' => 'ACTIVE']
         );
 
-        $ukuran19CmValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $ukuranAttribute->id,
-                'slug' => '19-cm',
-            ],
-            [
-                'attribute_id' => $ukuranAttribute->id,
-                'value' => '19 CM',
-                'slug' => '19-cm',
-                'sort' => 2,
-                'status' => 'ACTIVE',
-            ]
+        foreach ([$ukuranMValue, $ukuranLValue, $ukuranXLValue] as $val) {
+            ProductAttributeValue::firstOrCreate([
+                'product_attribute_id' => $p2UkuranAttr->id,
+                'attribute_value_id' => $val->id,
+            ]);
+        }
+
+        $p2Variants = [
+            ['name' => 'M',  'sku' => 'BD-FLANNEL-M',  'price' => 189000, 'ukuran' => $ukuranMValue,  'qty' => 30],
+            ['name' => 'L',  'sku' => 'BD-FLANNEL-L',  'price' => 189000, 'ukuran' => $ukuranLValue,  'qty' => 35],
+            ['name' => 'XL', 'sku' => 'BD-FLANNEL-XL', 'price' => 199000, 'ukuran' => $ukuranXLValue, 'qty' => 20],
+        ];
+
+        foreach ($p2Variants as $v) {
+            $variant = ProductVariant::firstOrCreate(
+                ['fk_product_id' => $product2->id, 'sku' => $v['sku']],
+                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'status' => 'ACTIVE',
+                 'image_path' => 'https://via.placeholder.com/600x800?text=Flannel+'.$v['name']]
+            );
+            ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $ukuranAttribute->id, 'attribute_value_id' => $v['ukuran']->id]);
+            ProductVariantStock::firstOrCreate(['variant_id' => $variant->id, 'store_id' => $defaultStore->id], ['qty' => $v['qty'], 'reserved_qty' => 0]);
+        }
+
+        ProductImage::firstOrCreate(
+            ['fk_product_id' => $product2->id, 'order_number' => 1],
+            ['path' => 'https://via.placeholder.com/600x800?text=Kemeja+Flannel+BD-002', 'order_number' => 1, 'is_featured' => true]
         );
 
-        $ukuran39CmValue = AttributeValue::firstOrCreate(
+        $product3 = Product::firstOrCreate(
+            ['slug' => 'jaket-denim-klasik-bd-003'],
             [
-                'attribute_id' => $ukuranAttribute->id,
-                'slug' => '39-cm',
-            ],
-            [
-                'attribute_id' => $ukuranAttribute->id,
-                'value' => '39 CM',
-                'slug' => '39-cm',
+                'name' => 'Jaket Denim Klasik BD-003',
+                'slug' => 'jaket-denim-klasik-bd-003',
+                'is_freeshiping' => 'ACTIVE',
+                'product_information' => 'Jaket denim klasik dengan potongan timeless yang cocok dipadukan dengan berbagai outfit. Bahan denim tebal dan tahan lama.',
+                'meta_keywords' => 'jaket denim,klasik,outerwear,bison denim',
+                'meta_description' => 'Jaket Denim Klasik BD-003 dari Bison Denim. Potongan timeless, bahan denim premium tahan lama.',
+                'meta_title' => 'Jaket Denim Klasik BD-003 - Bison Denim',
+                'weight' => 0.7,
+                'type_weight' => 'KG',
+                'size_long' => 65,
+                'size_tall' => 3,
+                'size_wide' => 58,
+                'type_size' => 'CM',
                 'sort' => 3,
-                'status' => 'ACTIVE',
+                'tags' => 'jaket,denim,outerwear,klasik',
+                'status' => 'PUBLISH',
+                'base_price' => 499000,
             ]
         );
 
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product2UkuranAttribute->id,
-            'attribute_value_id' => $ukuran22CmValue->id,
-        ]);
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product2UkuranAttribute->id,
-            'attribute_value_id' => $ukuran19CmValue->id,
-        ]);
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product2UkuranAttribute->id,
-            'attribute_value_id' => $ukuran39CmValue->id,
-        ]);
-
-        // ========== PRODUCT 2 VARIANTS (3 combinations) ==========
-        // Variant 1: 22 CM (599000)
-        $product2Variant1 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product2->id,
-            'variant_name' => '22 CM',
-            'sku' => 'HEIM-STUDIO-CHOJI-BANGKU-PIJAK-LIPAT-22-CM',
-            'price' => 89000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-475168.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product2Variant1->id,
-            'attribute_id' => $ukuranAttribute->id,
-            'attribute_value_id' => $ukuran22CmValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product2Variant1->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 15,
-            'reserved_qty' => 0,
-        ]);
-        // Variant 2: 19 CM (79000)
-        $product2Variant2 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product2->id,
-            'variant_name' => '19 CM',
-            'sku' => 'HEIM-STUDIO-CHOJI-BANGKU-PIJAK-LIPAT-19-CM',
-            'price' => 59000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-475167.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product2Variant2->id,
-            'attribute_id' => $ukuranAttribute->id,
-            'attribute_value_id' => $ukuran19CmValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product2Variant2->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 15,
-            'reserved_qty' => 0,
-        ]);
-        // Variant 3: 39 CM (129000)
-        $product2Variant3 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product2->id,
-            'variant_name' => '39 CM',
-            'sku' => 'HEIM-STUDIO-CHOJI-BANGKU-PIJAK-LIPAT-39-CM',
-            'price' => 129000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/NRA-475169.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product2Variant3->id,
-            'attribute_id' => $ukuranAttribute->id,
-            'attribute_value_id' => $ukuran39CmValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product2Variant3->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 15,
-            'reserved_qty' => 0,
-        ]); 
-
-        // Images for Product 2
-        ProductImage::firstOrCreate([
-            'fk_product_id' => $product2->id,
-            'path' => 'https://media.dekoruma.com/catalogue/NRA-475169.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-            'order_number' => 1,
-            'is_featured' => true,
-        ]);
-
-        // Product 3 - Aveda Bar Stool AC 602
-        $product3 = Product::firstOrCreate([
-            'name' => 'Aveda Bar Stool AC 602',
-            'slug' => 'aveda-bar-stool-ac-602',
-            'is_freeshiping' => 'ACTIVE',
-            'product_information' => 'Aveda Bar Stool AC 602',
-            'meta_keywords' => 'aveda,bar,stool,ac,602',
-            'meta_description' => 'Aveda Bar Stool AC 602',
-            'meta_title' => 'Aveda Bar Stool AC 602',
-            'weight' => 1.8,
-            'type_weight' => 'KG',
-            'sort' => 3,
-            'tags' => 'aveda,bar,stool,ac,602',
-            'status' => 'PUBLISH',
-            'base_price' => 1094000,
-        ]);
-
-        // Add product 3 to category - Kursi
-        $kursiCategoryProduct3 = TaxoList::where('taxonomy_slug', 'kursi')
+        $jaketCategory = TaxoList::where('taxonomy_slug', 'jaket-outerwear')
             ->where('taxonomy_type', 2)
             ->first();
-        if ($kursiCategoryProduct3) {
+        if ($jaketCategory) {
             ProductCategory::firstOrCreate([
                 'fk_product_id' => $product3->id,
-                'fk_category_id' => $kursiCategoryProduct3->id
+                'fk_category_id' => $jaketCategory->id,
             ]);
         }
 
-        // Create ProductAttribute for Warna
-        $product3WarnaAttribute = ProductAttribute::firstOrCreate(
-            [
-                'product_id' => $product3->id,
-                'attribute_id' => $warnaAttribute->id,
-            ],
-            [
-                'sort' => 1,
-            ]
+        $p3WarnaAttr = ProductAttribute::firstOrCreate(
+            ['product_id' => $product3->id, 'attribute_id' => $warnaAttribute->id],
+            ['sort' => 1]
         );
 
-        // Create AttributeValue for Warna
-        $putihValueProduct3 = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'slug' => 'putih',
-            ],
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'value' => 'Putih',
-                'slug' => 'putih',
-                'sort' => 1,
-                'status' => 'ACTIVE',
-            ]
+        $navyValue = AttributeValue::firstOrCreate(
+            ['attribute_id' => $warnaAttribute->id, 'slug' => 'navy'],
+            ['attribute_id' => $warnaAttribute->id, 'value' => 'Navy', 'slug' => 'navy', 'sort' => 3, 'status' => 'ACTIVE']
         );
 
-        $coklatMudaValue = AttributeValue::firstOrCreate(
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'slug' => 'coklat-muda',
-            ],
-            [
-                'attribute_id' => $warnaAttribute->id,
-                'value' => 'Coklat Muda',
-                'slug' => 'coklat-muda',
-                'sort' => 2,
-                'status' => 'ACTIVE',
-            ]
+        foreach ([$hitamValue, $navyValue] as $val) {
+            ProductAttributeValue::firstOrCreate([
+                'product_attribute_id' => $p3WarnaAttr->id,
+                'attribute_value_id' => $val->id,
+            ]);
+        }
+
+        $p3Variants = [
+            ['name' => 'Hitam', 'sku' => 'BD-JAKET-DENIM-HITAM', 'price' => 499000, 'warna' => $hitamValue, 'qty' => 15],
+            ['name' => 'Navy',  'sku' => 'BD-JAKET-DENIM-NAVY',  'price' => 499000, 'warna' => $navyValue,  'qty' => 15],
+        ];
+
+        foreach ($p3Variants as $v) {
+            $variant = ProductVariant::firstOrCreate(
+                ['fk_product_id' => $product3->id, 'sku' => $v['sku']],
+                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'status' => 'ACTIVE',
+                 'image_path' => 'https://via.placeholder.com/600x800?text=Jaket+Denim+'.$v['name']]
+            );
+            ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $warnaAttribute->id, 'attribute_value_id' => $v['warna']->id]);
+            ProductVariantStock::firstOrCreate(['variant_id' => $variant->id, 'store_id' => $defaultStore->id], ['qty' => $v['qty'], 'reserved_qty' => 0]);
+        }
+
+        ProductImage::firstOrCreate(
+            ['fk_product_id' => $product3->id, 'order_number' => 1],
+            ['path' => 'https://via.placeholder.com/600x800?text=Jaket+Denim+BD-003', 'order_number' => 1, 'is_featured' => true]
         );
-
-        // Link AttributeValues to ProductAttribute via ProductAttributeValue
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product3WarnaAttribute->id,
-            'attribute_value_id' => $putihValueProduct3->id,
-        ]);
-        ProductAttributeValue::firstOrCreate([
-            'product_attribute_id' => $product3WarnaAttribute->id,
-            'attribute_value_id' => $coklatMudaValue->id,
-        ]);
-
-        // Create ProductVariant for variant 1 (Putih)
-        $product3Variant1 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product3->id,
-            'variant_name' => 'Putih',
-            'sku' => 'AVEDA-BAR-STOOL-AC-602-PUTIH',
-            'price' => 1094000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/AVE-195.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product3Variant1->id,
-            'attribute_id' => $warnaAttribute->id,
-            'attribute_value_id' => $putihValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product3Variant1->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 15,
-            'reserved_qty' => 0,
-        ]);
-        
-        $product3Variant2 = ProductVariant::firstOrCreate([
-            'fk_product_id' => $product3->id,
-            'variant_name' => 'Coklat Muda',
-            'sku' => 'AVEDA-BAR-STOOL-AC-602-COKLAT-MUDA',
-            'price' => 1094000,
-            'status' => 'ACTIVE',
-            'image_path' => 'https://media.dekoruma.com/catalogue/AVE-193.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-        ]);
-        ProductVariantOption::firstOrCreate([
-            'variant_id' => $product3Variant2->id,
-            'attribute_id' => $warnaAttribute->id,
-            'attribute_value_id' => $coklatMudaValue->id,
-        ]);
-        ProductVariantStock::firstOrCreate([
-            'variant_id' => $product3Variant2->id,
-            'store_id' => $defaultStore->id,
-            'qty' => 15,
-            'reserved_qty' => 0,
-        ]);
-
-        // Images for Product 3
-        ProductImage::firstOrCreate([
-            'fk_product_id' => $product3->id,
-            'path' => 'https://media.dekoruma.com/catalogue/AVE-193.jpg?dpr=1.1&fit=bounds&height=1000&optimize=high&quality=60&trim-color=ffffff&width=1000',
-            'order_number' => 1,
-            'is_featured' => true,
-        ]);
-
     }
 }

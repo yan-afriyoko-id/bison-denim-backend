@@ -14,24 +14,24 @@ class TaxoListSeeder extends Seeder
     {
         // Brands (type 4)
         TaxoList::create([
-            'taxonomy_name' => 'ASUS',
-            'taxonomy_slug' => 'asus',
+            'taxonomy_name' => 'Denim Republic',
+            'taxonomy_slug' => 'denim-republic',
             'taxonomy_type' => 4,
             'taxonomy_sort' => 1,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Dell',
-            'taxonomy_slug' => 'dell',
+            'taxonomy_name' => 'Blue Stone',
+            'taxonomy_slug' => 'blue-stone',
             'taxonomy_type' => 4,
             'taxonomy_sort' => 2,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Apple',
-            'taxonomy_slug' => 'apple',
+            'taxonomy_name' => 'Indigo Wear',
+            'taxonomy_slug' => 'indigo-wear',
             'taxonomy_type' => 4,
             'taxonomy_sort' => 3,
             'taxonomy_status' => 'ACTIVE',
@@ -47,26 +47,34 @@ class TaxoListSeeder extends Seeder
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Silver',
-            'taxonomy_slug' => 'silver',
+            'taxonomy_name' => 'White',
+            'taxonomy_slug' => 'white',
             'taxonomy_type' => 5,
             'taxonomy_sort' => 2,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Gold',
-            'taxonomy_slug' => 'gold',
+            'taxonomy_name' => 'Indigo',
+            'taxonomy_slug' => 'indigo',
             'taxonomy_type' => 5,
             'taxonomy_sort' => 3,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'White',
-            'taxonomy_slug' => 'white',
+            'taxonomy_name' => 'Navy',
+            'taxonomy_slug' => 'navy',
             'taxonomy_type' => 5,
             'taxonomy_sort' => 4,
+            'taxonomy_status' => 'ACTIVE',
+        ]);
+
+        TaxoList::create([
+            'taxonomy_name' => 'Grey',
+            'taxonomy_slug' => 'grey',
+            'taxonomy_type' => 5,
+            'taxonomy_sort' => 5,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
@@ -74,21 +82,13 @@ class TaxoListSeeder extends Seeder
             'taxonomy_name' => 'Brown',
             'taxonomy_slug' => 'brown',
             'taxonomy_type' => 5,
-            'taxonomy_sort' => 5,
-            'taxonomy_status' => 'ACTIVE',
-        ]);
-
-        TaxoList::create([
-            'taxonomy_name' => 'Red',
-            'taxonomy_slug' => 'red',
-            'taxonomy_type' => 5,
             'taxonomy_sort' => 6,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Blue',
-            'taxonomy_slug' => 'blue',
+            'taxonomy_name' => 'Olive',
+            'taxonomy_slug' => 'olive',
             'taxonomy_type' => 5,
             'taxonomy_sort' => 7,
             'taxonomy_status' => 'ACTIVE',
@@ -96,65 +96,72 @@ class TaxoListSeeder extends Seeder
 
         // Attributes - Sizes (type 6)
         TaxoList::create([
-            'taxonomy_name' => 'LM D3',
-            'taxonomy_slug' => 'lm-d3',
+            'taxonomy_name' => 'XS',
+            'taxonomy_slug' => 'xs',
             'taxonomy_type' => 6,
             'taxonomy_sort' => 1,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'LM D4',
-            'taxonomy_slug' => 'lm-d4',
+            'taxonomy_name' => 'S',
+            'taxonomy_slug' => 's',
             'taxonomy_type' => 6,
             'taxonomy_sort' => 2,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Small',
-            'taxonomy_slug' => 'small',
+            'taxonomy_name' => 'M',
+            'taxonomy_slug' => 'm',
             'taxonomy_type' => 6,
             'taxonomy_sort' => 3,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Medium',
-            'taxonomy_slug' => 'medium',
+            'taxonomy_name' => 'L',
+            'taxonomy_slug' => 'l',
             'taxonomy_type' => 6,
             'taxonomy_sort' => 4,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Large',
-            'taxonomy_slug' => 'large',
+            'taxonomy_name' => 'XL',
+            'taxonomy_slug' => 'xl',
             'taxonomy_type' => 6,
             'taxonomy_sort' => 5,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
-        // Attributes - Models (type 7)
         TaxoList::create([
-            'taxonomy_name' => 'JF-2B310-2door-120cm',
-            'taxonomy_slug' => 'jf-2b310-2door-120cm',
+            'taxonomy_name' => 'XXL',
+            'taxonomy_slug' => 'xxl',
+            'taxonomy_type' => 6,
+            'taxonomy_sort' => 6,
+            'taxonomy_status' => 'ACTIVE',
+        ]);
+
+        TaxoList::create([
+            'taxonomy_name' => 'Slim Fit',
+            'taxonomy_slug' => 'slim-fit',
             'taxonomy_type' => 7,
             'taxonomy_sort' => 1,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Standard Model',
-            'taxonomy_slug' => 'standard-model',
+            'taxonomy_name' => 'Regular Fit',
+            'taxonomy_slug' => 'regular-fit',
             'taxonomy_type' => 7,
             'taxonomy_sort' => 2,
             'taxonomy_status' => 'ACTIVE',
         ]);
 
         TaxoList::create([
-            'taxonomy_name' => 'Premium Model',
-            'taxonomy_slug' => 'premium-model',
+            'taxonomy_name' => 'Relaxed Fit',
+            'taxonomy_slug' => 'relaxed-fit',
             'taxonomy_type' => 7,
             'taxonomy_sort' => 3,
             'taxonomy_status' => 'ACTIVE',

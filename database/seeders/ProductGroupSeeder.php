@@ -30,8 +30,7 @@ class ProductGroupSeeder extends Seeder
             'key' => 'rekomendasi-untukmu',
         ]);
 
-
-        $subGroupOfficialStore = ['Official Store Elektronik', 'Official Store Fashion', 'Official Store Kecantikan'];
+        $subGroupOfficialStore = ['Official Store Pria', 'Official Store Wanita', 'Official Store Unisex'];
         foreach ($subGroupOfficialStore as $subGroup) {
             ProductSubGroup::create([
                 'product_group_id' => $officialStore->id,
@@ -39,7 +38,7 @@ class ProductGroupSeeder extends Seeder
             ]);
         }
 
-        $subGroupPenawaranSpesial = ['Elektronik', 'Perlengkapan Dapur', 'Perlengkapan Kantor'];
+        $subGroupPenawaranSpesial = ['Flash Sale Denim', 'Promo Kemeja', 'Diskon Jaket'];
         foreach ($subGroupPenawaranSpesial as $subGroup) {
             ProductSubGroup::create([
                 'product_group_id' => $penawaranSpesial->id,
@@ -47,7 +46,7 @@ class ProductGroupSeeder extends Seeder
             ]);
         }
 
-        $subGroupRekomendasiUntukmu = ['Spesial Online', 'Weekend Special', 'Pasti Termurah', 'Beli 1 Gratis 1'];
+        $subGroupRekomendasiUntukmu = ['New Arrivals', 'Terlaris', 'Koleksi Musim Ini', 'Beli 1 Gratis 1'];
         foreach ($subGroupRekomendasiUntukmu as $subGroup) {
             ProductSubGroup::create([
                 'product_group_id' => $rekomendasiUntukmu->id,
