@@ -14,6 +14,7 @@ use App\Models\Attribute;
 use App\Models\AttributeValue;
 use App\Models\Store;
 use App\Models\TaxoList;
+use App\Models\TaxoType;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -31,6 +32,26 @@ class ProductSeeder extends Seeder
                 'status' => 'ACTIVE',
             ]
         );
+
+        $categoryTypeId = TaxoType::where('taxo_type_name', 'Category')->value('id');
+        $subcategoryTypeId = TaxoType::where('taxo_type_name', 'Subcategory')->value('id');
+
+        $attachProductTaxonomy = function (Product $product, string $slug, ?int $taxonomyTypeId): void {
+            if (!$taxonomyTypeId) {
+                return;
+            }
+
+            $taxonomy = TaxoList::where('taxonomy_slug', $slug)
+                ->where('taxonomy_type', $taxonomyTypeId)
+                ->first();
+
+            if ($taxonomy) {
+                ProductCategory::firstOrCreate([
+                    'fk_product_id' => $product->id,
+                    'fk_category_id' => $taxonomy->id,
+                ]);
+            }
+        };
 
         $warnaAttribute = Attribute::firstOrCreate(
             ['slug' => 'warna'],
@@ -65,15 +86,8 @@ class ProductSeeder extends Seeder
             ]
         );
 
-        $celanaJeansCategory = TaxoList::where('taxonomy_slug', 'celana-jeans')
-            ->where('taxonomy_type', 2)
-            ->first();
-        if ($celanaJeansCategory) {
-            ProductCategory::firstOrCreate([
-                'fk_product_id' => $product1->id,
-                'fk_category_id' => $celanaJeansCategory->id,
-            ]);
-        }
+        $attachProductTaxonomy($product1, 'celana-jeans', $categoryTypeId);
+        $attachProductTaxonomy($product1, 'slim-fit', $subcategoryTypeId);
 
         $p1WarnaAttr = ProductAttribute::firstOrCreate(
             ['product_id' => $product1->id, 'attribute_id' => $warnaAttribute->id],
@@ -164,15 +178,8 @@ class ProductSeeder extends Seeder
             ]
         );
 
-        $kemejaCatergory = TaxoList::where('taxonomy_slug', 'kemeja')
-            ->where('taxonomy_type', 2)
-            ->first();
-        if ($kemejaCatergory) {
-            ProductCategory::firstOrCreate([
-                'fk_product_id' => $product2->id,
-                'fk_category_id' => $kemejaCatergory->id,
-            ]);
-        }
+        $attachProductTaxonomy($product2, 'kemeja', $categoryTypeId);
+        $attachProductTaxonomy($product2, 'kemeja-flannel', $subcategoryTypeId);
 
         $p2UkuranAttr = ProductAttribute::firstOrCreate(
             ['product_id' => $product2->id, 'attribute_id' => $ukuranAttribute->id],
@@ -235,15 +242,8 @@ class ProductSeeder extends Seeder
             ]
         );
 
-        $jaketCategory = TaxoList::where('taxonomy_slug', 'jaket-outerwear')
-            ->where('taxonomy_type', 2)
-            ->first();
-        if ($jaketCategory) {
-            ProductCategory::firstOrCreate([
-                'fk_product_id' => $product3->id,
-                'fk_category_id' => $jaketCategory->id,
-            ]);
-        }
+        $attachProductTaxonomy($product3, 'jaket-outerwear', $categoryTypeId);
+        $attachProductTaxonomy($product3, 'jaket-denim', $subcategoryTypeId);
 
         $p3WarnaAttr = ProductAttribute::firstOrCreate(
             ['product_id' => $product3->id, 'attribute_id' => $warnaAttribute->id],
