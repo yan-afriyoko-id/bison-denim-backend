@@ -53,6 +53,24 @@ class ProductSeeder extends Seeder
             }
         };
 
+        $discountPercent = fn(int $price, int $strikePrice): float => round((($strikePrice - $price) / $strikePrice) * 100, 2);
+
+        $syncProductPricing = function (Product $product, int $price, int $strikePrice) use ($discountPercent): void {
+            $product->update([
+                'base_price' => $price,
+                'base_strike_price' => $strikePrice,
+                'base_discount_percent' => $discountPercent($price, $strikePrice),
+            ]);
+        };
+
+        $syncVariantPricing = function (ProductVariant $variant, int $price, int $strikePrice) use ($discountPercent): void {
+            $variant->update([
+                'price' => $price,
+                'strike_price' => $strikePrice,
+                'discount_percent' => $discountPercent($price, $strikePrice),
+            ]);
+        };
+
         $warnaAttribute = Attribute::firstOrCreate(
             ['slug' => 'warna'],
             ['name' => 'Warna', 'slug' => 'warna', 'sort' => 1, 'status' => 'ACTIVE']
@@ -83,8 +101,11 @@ class ProductSeeder extends Seeder
                 'tags' => 'celana jeans,slim fit,denim,pria',
                 'status' => 'PUBLISH',
                 'base_price' => 299000,
+                'base_strike_price' => 349000,
+                'base_discount_percent' => $discountPercent(299000, 349000),
             ]
         );
+        $syncProductPricing($product1, 299000, 349000);
 
         $attachProductTaxonomy($product1, 'celana-jeans', $categoryTypeId);
         $attachProductTaxonomy($product1, 'slim-fit', $subcategoryTypeId);
@@ -130,18 +151,19 @@ class ProductSeeder extends Seeder
 
         // Variants: Indigo-M, Indigo-L, Hitam-M, Hitam-L
         $p1Variants = [
-            ['name' => 'Indigo - M', 'sku' => 'BD-JEANS-SLIM-INDIGO-M', 'price' => 299000, 'warna' => $indigoValue, 'ukuran' => $ukuranMValue, 'qty' => 20],
-            ['name' => 'Indigo - L', 'sku' => 'BD-JEANS-SLIM-INDIGO-L', 'price' => 299000, 'warna' => $indigoValue, 'ukuran' => $ukuranLValue, 'qty' => 25],
-            ['name' => 'Hitam - M',  'sku' => 'BD-JEANS-SLIM-HITAM-M',  'price' => 309000, 'warna' => $hitamValue,  'ukuran' => $ukuranMValue, 'qty' => 18],
-            ['name' => 'Hitam - L',  'sku' => 'BD-JEANS-SLIM-HITAM-L',  'price' => 309000, 'warna' => $hitamValue,  'ukuran' => $ukuranLValue, 'qty' => 22],
+            ['name' => 'Indigo - M', 'sku' => 'BD-JEANS-SLIM-INDIGO-M', 'price' => 299000, 'strike_price' => 349000, 'warna' => $indigoValue, 'ukuran' => $ukuranMValue, 'qty' => 20],
+            ['name' => 'Indigo - L', 'sku' => 'BD-JEANS-SLIM-INDIGO-L', 'price' => 299000, 'strike_price' => 349000, 'warna' => $indigoValue, 'ukuran' => $ukuranLValue, 'qty' => 25],
+            ['name' => 'Hitam - M',  'sku' => 'BD-JEANS-SLIM-HITAM-M',  'price' => 309000, 'strike_price' => 359000, 'warna' => $hitamValue,  'ukuran' => $ukuranMValue, 'qty' => 18],
+            ['name' => 'Hitam - L',  'sku' => 'BD-JEANS-SLIM-HITAM-L',  'price' => 309000, 'strike_price' => 359000, 'warna' => $hitamValue,  'ukuran' => $ukuranLValue, 'qty' => 22],
         ];
 
         foreach ($p1Variants as $v) {
             $variant = ProductVariant::firstOrCreate(
                 ['fk_product_id' => $product1->id, 'sku' => $v['sku']],
-                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'status' => 'ACTIVE',
+                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'strike_price' => $v['strike_price'], 'discount_percent' => $discountPercent($v['price'], $v['strike_price']), 'status' => 'ACTIVE',
                  'image_path' => 'https://via.placeholder.com/600x800?text=Jeans+'.$v['name']]
             );
+            $syncVariantPricing($variant, $v['price'], $v['strike_price']);
             ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $warnaAttribute->id, 'attribute_value_id' => $v['warna']->id]);
             ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $ukuranAttribute->id, 'attribute_value_id' => $v['ukuran']->id]);
             ProductVariantStock::firstOrCreate(['variant_id' => $variant->id, 'store_id' => $defaultStore->id], ['qty' => $v['qty'], 'reserved_qty' => 0]);
@@ -175,8 +197,11 @@ class ProductSeeder extends Seeder
                 'tags' => 'kemeja,flannel,kotak,kasual',
                 'status' => 'PUBLISH',
                 'base_price' => 189000,
+                'base_strike_price' => 229000,
+                'base_discount_percent' => $discountPercent(189000, 229000),
             ]
         );
+        $syncProductPricing($product2, 189000, 229000);
 
         $attachProductTaxonomy($product2, 'kemeja', $categoryTypeId);
         $attachProductTaxonomy($product2, 'kemeja-flannel', $subcategoryTypeId);
@@ -199,17 +224,18 @@ class ProductSeeder extends Seeder
         }
 
         $p2Variants = [
-            ['name' => 'M',  'sku' => 'BD-FLANNEL-M',  'price' => 189000, 'ukuran' => $ukuranMValue,  'qty' => 30],
-            ['name' => 'L',  'sku' => 'BD-FLANNEL-L',  'price' => 189000, 'ukuran' => $ukuranLValue,  'qty' => 35],
-            ['name' => 'XL', 'sku' => 'BD-FLANNEL-XL', 'price' => 199000, 'ukuran' => $ukuranXLValue, 'qty' => 20],
+            ['name' => 'M',  'sku' => 'BD-FLANNEL-M',  'price' => 189000, 'strike_price' => 229000, 'ukuran' => $ukuranMValue,  'qty' => 30],
+            ['name' => 'L',  'sku' => 'BD-FLANNEL-L',  'price' => 189000, 'strike_price' => 229000, 'ukuran' => $ukuranLValue,  'qty' => 35],
+            ['name' => 'XL', 'sku' => 'BD-FLANNEL-XL', 'price' => 199000, 'strike_price' => 239000, 'ukuran' => $ukuranXLValue, 'qty' => 20],
         ];
 
         foreach ($p2Variants as $v) {
             $variant = ProductVariant::firstOrCreate(
                 ['fk_product_id' => $product2->id, 'sku' => $v['sku']],
-                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'status' => 'ACTIVE',
+                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'strike_price' => $v['strike_price'], 'discount_percent' => $discountPercent($v['price'], $v['strike_price']), 'status' => 'ACTIVE',
                  'image_path' => 'https://via.placeholder.com/600x800?text=Flannel+'.$v['name']]
             );
+            $syncVariantPricing($variant, $v['price'], $v['strike_price']);
             ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $ukuranAttribute->id, 'attribute_value_id' => $v['ukuran']->id]);
             ProductVariantStock::firstOrCreate(['variant_id' => $variant->id, 'store_id' => $defaultStore->id], ['qty' => $v['qty'], 'reserved_qty' => 0]);
         }
@@ -239,8 +265,11 @@ class ProductSeeder extends Seeder
                 'tags' => 'jaket,denim,outerwear,klasik',
                 'status' => 'PUBLISH',
                 'base_price' => 499000,
+                'base_strike_price' => 599000,
+                'base_discount_percent' => $discountPercent(499000, 599000),
             ]
         );
+        $syncProductPricing($product3, 499000, 599000);
 
         $attachProductTaxonomy($product3, 'jaket-outerwear', $categoryTypeId);
         $attachProductTaxonomy($product3, 'jaket-denim', $subcategoryTypeId);
@@ -263,16 +292,17 @@ class ProductSeeder extends Seeder
         }
 
         $p3Variants = [
-            ['name' => 'Hitam', 'sku' => 'BD-JAKET-DENIM-HITAM', 'price' => 499000, 'warna' => $hitamValue, 'qty' => 15],
-            ['name' => 'Navy',  'sku' => 'BD-JAKET-DENIM-NAVY',  'price' => 499000, 'warna' => $navyValue,  'qty' => 15],
+            ['name' => 'Hitam', 'sku' => 'BD-JAKET-DENIM-HITAM', 'price' => 499000, 'strike_price' => 599000, 'warna' => $hitamValue, 'qty' => 15],
+            ['name' => 'Navy',  'sku' => 'BD-JAKET-DENIM-NAVY',  'price' => 499000, 'strike_price' => 599000, 'warna' => $navyValue,  'qty' => 15],
         ];
 
         foreach ($p3Variants as $v) {
             $variant = ProductVariant::firstOrCreate(
                 ['fk_product_id' => $product3->id, 'sku' => $v['sku']],
-                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'status' => 'ACTIVE',
+                ['variant_name' => $v['name'], 'sku' => $v['sku'], 'price' => $v['price'], 'strike_price' => $v['strike_price'], 'discount_percent' => $discountPercent($v['price'], $v['strike_price']), 'status' => 'ACTIVE',
                  'image_path' => 'https://via.placeholder.com/600x800?text=Jaket+Denim+'.$v['name']]
             );
+            $syncVariantPricing($variant, $v['price'], $v['strike_price']);
             ProductVariantOption::firstOrCreate(['variant_id' => $variant->id, 'attribute_id' => $warnaAttribute->id, 'attribute_value_id' => $v['warna']->id]);
             ProductVariantStock::firstOrCreate(['variant_id' => $variant->id, 'store_id' => $defaultStore->id], ['qty' => $v['qty'], 'reserved_qty' => 0]);
         }
