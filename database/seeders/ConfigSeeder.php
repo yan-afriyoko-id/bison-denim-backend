@@ -197,6 +197,12 @@ class ConfigSeeder extends Seeder
     
             // ===== PAYMENT SETTINGS =====
             [
+                'key' => 'midtrans_is_active',
+                'value' => 'false',
+                'description' => 'Aktifkan pembayaran Midtrans',
+                'type' => 'boolean',
+            ],
+            [
                 'key' => 'midtrans_server_key',
                 'value' => 'your_midtrans_server_key',
                 'description' => 'Midtrans server key',
@@ -212,6 +218,32 @@ class ConfigSeeder extends Seeder
                 'key' => 'midtrans_is_production',
                 'value' => 'false',
                 'description' => 'Midtrans production mode',
+                'type' => 'boolean',
+            ],
+
+            // ===== XENDIT SETTINGS =====
+            [
+                'key' => 'xendit_is_active',
+                'value' => 'false',
+                'description' => 'Aktifkan pembayaran Xendit',
+                'type' => 'boolean',
+            ],
+            [
+                'key' => 'xendit_secret_key',
+                'value' => '',
+                'description' => 'Xendit Secret Key',
+                'type' => 'string',
+            ],
+            [
+                'key' => 'xendit_public_key',
+                'value' => '',
+                'description' => 'Xendit Public Key',
+                'type' => 'string',
+            ],
+            [
+                'key' => 'xendit_is_production',
+                'value' => 'false',
+                'description' => 'Xendit production mode',
                 'type' => 'boolean',
             ],
 

@@ -36,6 +36,7 @@ use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PointController;
+use App\Http\Controllers\XenditWebhookController;
 use App\Http\Controllers\PopupBannerController;
 use App\Http\Controllers\ShippingAddressController;
 use App\Http\Controllers\ShippingController;
@@ -153,13 +154,15 @@ Route::prefix('checkout')->group(function () {
     Route::post('/create', [CheckoutController::class, 'create']);
 });
 
-// Midtrans route
+// Payment routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'create']);
     Route::post('/payments/groups', [PaymentController::class, 'createMidtransSnapForOrders']);
     Route::post('/orders/{order}/pay/midtrans', [PaymentController::class, 'createMidtransSnap']);
+    Route::post('/orders/{order}/pay/xendit', [PaymentController::class, 'createXenditInvoice']);
 });
 Route::post('/midtrans/webhook', [MidtransWebhookController::class, 'handle']);
+Route::post('/xendit/webhook', [XenditWebhookController::class, 'handle']);
 Route::get('/payment/midtrans/config', function () {
     $settings = config('settings');
 
@@ -185,6 +188,7 @@ Route::middleware('auth:sanctum')
         Route::put('/{id}/status', [OrderController::class, 'updateStatus'])->middleware('permission:orders.update');
         Route::post('/{id}/cancel', [OrderController::class, 'cancel']);
         Route::post('/{id}/complete', [OrderController::class, 'complete']);
+        Route::post('/{id}/check-payment', [OrderController::class, 'checkPaymentStatus']);
     });
 
 // Point routes (authenticated only)

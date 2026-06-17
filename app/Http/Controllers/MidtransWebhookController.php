@@ -14,10 +14,6 @@ class MidtransWebhookController extends Controller
 {
     public function handle(Request $request)
     {
-        if ($request->header('ngrok-skip-browser-warning') !== 'true') {
-            header('ngrok-skip-browser-warning: true');
-        }
-
         try {
             $settings = config('settings');
             $serverKey = $settings['midtrans_server_key'] ?? env('MIDTRANS_SERVER_KEY');
@@ -57,7 +53,7 @@ class MidtransWebhookController extends Controller
             if ($request->signature_key !== $expectedSignature) {
                 Log::error('MIDTRANS INVALID SIGNATURE', [
                     'order_id' => $request->order_id,
-                    'order_number' => $order->order_number,
+                    'order_number' => $order?->order_number ?? $paymentGroup?->group_number,
                 ]);
                 return response()->json(['message' => 'Invalid signature'], 403);
             }

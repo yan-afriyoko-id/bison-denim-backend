@@ -7,6 +7,7 @@ use App\Models\UserShippingAddress;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
 use App\Services\Payment\MidtransService;
+use App\Services\Payment\XenditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -21,16 +22,19 @@ class PaymentController extends Controller
     }
 
     /**
-     * Create a Midtrans snap token for multiple orders (payment group)
-     * Expects JSON: { order_ids: [1,2,3] }
+     * Create a payment for multiple orders (payment group)
+     * Supports both Midtrans (snap_token) and Xendit (invoice_url)
+     * Expects JSON: { order_ids: [1,2,3], payment_method?: "midtrans"|"xendit" }
      */
     public function createMidtransSnapForOrders(Request $request): JsonResponse
     {
         $data = $request->validate([
             'order_ids' => 'required|array|min:1',
             'order_ids.*' => 'integer|exists:orders,id',
+            'payment_method' => 'nullable|string|in:midtrans,xendit',
         ]);
 
+        $paymentMethod = $data['payment_method'] ?? 'midtrans';
         $orderIds = $data['order_ids'];
 
         $orders = Order::whereIn('id', $orderIds)->get();
@@ -101,6 +105,18 @@ class PaymentController extends Controller
         $phone = $this->getPhoneWithFallback($firstOrder);
         $phone = $this->formatPhoneNumber($phone);
 
+        // Generate unique group number
+        $groupNumber = 'PG-' . (string)(method_exists(\Illuminate\Support\Str::class, 'uuid') ? \Illuminate\Support\Str::uuid() : uniqid());
+
+        if ($paymentMethod === 'xendit') {
+            return $this->createXenditGroupPayment($request, $orders, $firstOrder, $grossAmount, $groupNumber, $phone);
+        }
+
+        return $this->createMidtransGroupPayment($orders, $firstOrder, $itemDetails, $grossAmount, $groupNumber, $phone);
+    }
+
+    private function createMidtransGroupPayment($orders, $firstOrder, array $itemDetails, int $grossAmount, string $groupNumber, string $phone): JsonResponse
+    {
         $shippingAddressFull = $this->formatAddress(
             $firstOrder->shipping_address,
             $firstOrder->shipping_city,
@@ -144,8 +160,7 @@ class PaymentController extends Controller
 
         $params = [
             'transaction_details' => [
-                'order_id' => 'PG-' . (string)
-                (method_exists(\Illuminate\Support\Str::class, 'uuid') ? \Illuminate\Support\Str::uuid() : uniqid()),
+                'order_id' => $groupNumber,
                 'gross_amount' => max(0, (int) $grossAmount),
             ],
             'customer_details' => $customerDetails,
@@ -155,8 +170,6 @@ class PaymentController extends Controller
         try {
             $snapToken = MidtransService::createSnapToken($params);
 
-            // create payment group record
-            $groupNumber = $params['transaction_details']['order_id'];
             $paymentGroup = \App\Models\PaymentGroup::create([
                 'uuid' => (string) (\Illuminate\Support\Str::uuid() ?? ''),
                 'group_number' => $groupNumber,
@@ -166,7 +179,6 @@ class PaymentController extends Controller
                 'fk_user_id' => $firstOrder->fk_user_id ?? null,
             ]);
 
-            // attach orders
             foreach ($orders as $order) {
                 $paymentGroup->orders()->attach($order->id);
             }
@@ -174,6 +186,64 @@ class PaymentController extends Controller
             return response()->json(['snap_token' => $snapToken, 'payment_group_id' => $paymentGroup->id]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal membuat token pembayaran group: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function createXenditGroupPayment(Request $request, $orders, $firstOrder, int $grossAmount, string $groupNumber, string $phone): JsonResponse
+    {
+        $successRedirectUrl = $request->input('success_redirect_url', config('app.frontend_url') . '/account/orders?tab=paid');
+        $failureRedirectUrl = $request->input('failure_redirect_url', config('app.frontend_url') . '/account/orders?tab=unpaid');
+        $callbackUrl = url('/api/xendit/webhook');
+
+        $params = [
+            'external_id' => $groupNumber,
+            'amount' => max(0, (int) $grossAmount),
+            'description' => 'Payment for orders group ' . $groupNumber,
+            'customer' => array_filter([
+                'given_names' => $firstOrder->shipping_first_name,
+                'surname' => $firstOrder->shipping_last_name ?? '',
+                'email' => $firstOrder->contact_email,
+                'mobile_number' => $phone,
+            ]),
+            'customer_notification_preference' => [
+                'invoice_created' => ['email', 'whatsapp'],
+                'invoice_reminder' => ['email', 'whatsapp'],
+                'invoice_paid' => ['email', 'whatsapp'],
+            ],
+            'success_redirect_url' => $successRedirectUrl,
+            'failure_redirect_url' => $failureRedirectUrl,
+            'callback_url' => $callbackUrl,
+            'currency' => 'IDR',
+        ];
+
+        try {
+            $invoice = XenditService::createInvoice($params);
+
+            $paymentGroup = \App\Models\PaymentGroup::create([
+                'uuid' => (string) (\Illuminate\Support\Str::uuid() ?? ''),
+                'group_number' => $groupNumber,
+                'gross_amount' => (int) $grossAmount,
+                'payment_snap_token' => $invoice['invoice_url'] ?? null,
+                'status' => 'PENDING',
+                'fk_user_id' => $firstOrder->fk_user_id ?? null,
+            ]);
+
+            foreach ($orders as $order) {
+                $paymentGroup->orders()->attach($order->id);
+
+                $order->update([
+                    'payment_method' => 'xendit',
+                    'payment_reference_code' => $invoice['id'] ?? null,
+                ]);
+            }
+
+            return response()->json([
+                'invoice_url' => $invoice['invoice_url'] ?? null,
+                'external_id' => $groupNumber,
+                'payment_group_id' => $paymentGroup->id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal membuat invoice Xendit group: ' . $e->getMessage()], 500);
         }
     }
 
@@ -367,6 +437,77 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal membuat token pembayaran: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createXenditInvoice(Request $request, Order $order): JsonResponse
+    {
+        if ($order->payment_status !== 'PENDING') {
+            return response()->json([
+                'message' => 'Order is not payable'
+            ], 422);
+        }
+
+        if ($order->payment_reference_code) {
+            return response()->json([
+                'invoice_url' => $order->payment_snap_token,
+                'external_id' => $order->order_number,
+            ]);
+        }
+
+        if (!$order->relationLoaded('user')) {
+            $order->load('user');
+        }
+
+        $phone = $this->getPhoneWithFallback($order);
+        $phone = $this->formatPhoneNumber($phone);
+
+        if (!$order->relationLoaded('orderItems')) {
+            $order->load('orderItems');
+        }
+
+        $successRedirectUrl = $request->input('success_redirect_url', config('app.frontend_url') . '/account/orders?tab=paid');
+        $failureRedirectUrl = $request->input('failure_redirect_url', config('app.frontend_url') . '/account/orders?tab=unpaid');
+        $callbackUrl = url('/api/xendit/webhook');
+
+        $params = [
+            'external_id' => $order->order_number,
+            'amount' => max(0, (int) $order->total_amount),
+            'description' => 'Payment for order ' . $order->order_number,
+            'customer' => array_filter([
+                'given_names' => $order->shipping_first_name,
+                'surname' => $order->shipping_last_name ?? '',
+                'email' => $order->contact_email,
+                'mobile_number' => $phone,
+            ]),
+            'customer_notification_preference' => [
+                'invoice_created' => ['email', 'whatsapp'],
+                'invoice_reminder' => ['email', 'whatsapp'],
+                'invoice_paid' => ['email', 'whatsapp'],
+            ],
+            'success_redirect_url' => $successRedirectUrl,
+            'failure_redirect_url' => $failureRedirectUrl,
+            'callback_url' => $callbackUrl,
+            'currency' => 'IDR',
+        ];
+
+        try {
+            $invoice = XenditService::createInvoice($params);
+
+            $order->update([
+                'payment_method' => 'xendit',
+                'payment_reference_code' => $invoice['id'] ?? null,
+                'payment_snap_token' => $invoice['invoice_url'] ?? null,
+            ]);
+
+            return response()->json([
+                'invoice_url' => $invoice['invoice_url'] ?? null,
+                'external_id' => $order->order_number,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal membuat invoice Xendit: ' . $e->getMessage()
             ], 500);
         }
     }

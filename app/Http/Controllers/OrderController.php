@@ -7,9 +7,11 @@ use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
 use App\Services\Payment\MidtransService;
+use App\Services\Payment\XenditService;
 use App\Services\Point\PointService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -565,6 +567,179 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menyelesaikan pesanan',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function checkPaymentStatus(int $id): JsonResponse
+    {
+        try {
+            $user = auth('sanctum')->user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
+
+            $order = Order::where('id', $id)
+                ->where('fk_user_id', $user->id)
+                ->first();
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            if ($order->payment_status === 'PAID') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment already confirmed',
+                    'data' => [
+                        'payment_status' => $order->payment_status,
+                        'status' => $order->status,
+                    ],
+                ]);
+            }
+
+            if ($order->payment_method === 'midtrans' || !$order->payment_method) {
+                $status = MidtransService::checkTransactionStatus($order->order_number);
+                if ($status && in_array($status['transaction_status'], ['capture', 'settlement'])) {
+                    $oldPaymentStatus = $order->payment_status;
+                    $order->update([
+                        'payment_status' => 'PAID',
+                        'payment_reference_code' => $status['transaction_id'],
+                        'payment_type' => $status['payment_type'],
+                        'status' => 'PACKING',
+                    ]);
+
+                    if ($oldPaymentStatus !== 'PAID') {
+                        if (!$order->relationLoaded('orderItems')) {
+                            $order->load('orderItems');
+                        }
+
+                        $orderItems = $order->orderItems->map(function ($item) {
+                            return [
+                                'variant_id' => $item->fk_variant_id,
+                                'qty' => $item->qty,
+                                'store_id' => $item->store_id,
+                            ];
+                        })->toArray();
+
+                        if (!empty($orderItems)) {
+                            $this->orderStockReductionService->convertReservedToActual($orderItems);
+                        }
+
+                        if ($order->fk_voucher_id) {
+                            $voucher = Voucher::find($order->fk_voucher_id);
+                            if ($voucher) {
+                                $voucher->increment('voucher_used');
+                            }
+                        }
+
+                        try {
+                            $pointService = app(PointService::class);
+                            $pointService->addPointsFromOrder($order->fk_user_id, $order->id, $order->total_amount);
+                            $pointService->deductPoints(
+                                userId: $order->fk_user_id,
+                                points: $order->points_used,
+                                orderId: $order->id,
+                                description: "Digunakan untuk pembayaran order #{$order->order_number}"
+                            );
+                        } catch (\Exception $e) {
+                            Log::error('CHECK PAYMENT: Failed to add points', [
+                                'order_id' => $order->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Payment confirmed',
+                        'data' => [
+                            'payment_status' => 'PAID',
+                            'status' => 'PACKING',
+                        ],
+                    ]);
+                }
+            } elseif ($order->payment_method === 'xendit' && $order->payment_reference_code) {
+                $invoice = XenditService::getInvoice($order->payment_reference_code);
+                if ($invoice && ($invoice['status'] ?? null) === 'PAID') {
+                    $oldPaymentStatus = $order->payment_status;
+                    $order->update([
+                        'payment_status' => 'PAID',
+                        'status' => 'PACKING',
+                    ]);
+
+                    if ($oldPaymentStatus !== 'PAID') {
+                        if (!$order->relationLoaded('orderItems')) {
+                            $order->load('orderItems');
+                        }
+
+                        $orderItems = $order->orderItems->map(function ($item) {
+                            return [
+                                'variant_id' => $item->fk_variant_id,
+                                'qty' => $item->qty,
+                                'store_id' => $item->store_id,
+                            ];
+                        })->toArray();
+
+                        if (!empty($orderItems)) {
+                            $this->orderStockReductionService->convertReservedToActual($orderItems);
+                        }
+
+                        if ($order->fk_voucher_id) {
+                            $voucher = Voucher::find($order->fk_voucher_id);
+                            if ($voucher) {
+                                $voucher->increment('voucher_used');
+                            }
+                        }
+
+                        try {
+                            $pointService = app(PointService::class);
+                            $pointService->addPointsFromOrder($order->fk_user_id, $order->id, $order->total_amount);
+                            $pointService->deductPoints(
+                                userId: $order->fk_user_id,
+                                points: $order->points_used,
+                                orderId: $order->id,
+                                description: "Digunakan untuk pembayaran order #{$order->order_number}"
+                            );
+                        } catch (\Exception $e) {
+                            Log::error('CHECK PAYMENT: Failed to add points', [
+                                'order_id' => $order->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Payment confirmed',
+                        'data' => [
+                            'payment_status' => 'PAID',
+                            'status' => 'PACKING',
+                        ],
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment not yet confirmed',
+                'data' => [
+                    'payment_status' => $order->payment_status,
+                    'status' => $order->status,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check payment status',
                 'error' => $e->getMessage(),
             ], 500);
         }
