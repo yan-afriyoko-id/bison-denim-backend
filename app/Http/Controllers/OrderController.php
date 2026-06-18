@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
 use App\Services\Payment\MidtransService;
+use App\Services\Payment\OrderPaymentSyncService;
 use App\Services\Payment\XenditService;
 use App\Services\Point\PointService;
 use Illuminate\Http\JsonResponse;
@@ -16,10 +17,15 @@ use Illuminate\Support\Facades\Log;
 class OrderController extends Controller
 {
     protected OrderStockReductionService $orderStockReductionService;
+    protected OrderPaymentSyncService $orderPaymentSyncService;
 
-    public function __construct(OrderStockReductionService $orderStockReductionService)
+    public function __construct(
+        OrderStockReductionService $orderStockReductionService,
+        OrderPaymentSyncService $orderPaymentSyncService
+    )
     {
         $this->orderStockReductionService = $orderStockReductionService;
+        $this->orderPaymentSyncService = $orderPaymentSyncService;
     }
     /**
      * Get user's orders
@@ -66,6 +72,10 @@ class OrderController extends Controller
 
             $orders = $query->orderBy('created_at', 'desc')
                 ->paginate($perPage);
+
+            foreach ($orders->items() as $order) {
+                $this->orderPaymentSyncService->syncMidtransOrder($order);
+            }
 
             return response()->json([
                 'success' => true,
@@ -123,10 +133,15 @@ class OrderController extends Controller
                 ], 404);
             }
 
+            $this->orderPaymentSyncService->syncMidtransOrder($order);
+            $order->refresh();
+
             if (
                 $order->status === 'PENDING' &&
                 $order->payment_status === 'PENDING' &&
-                $order->payment_snap_token
+                $order->payment_snap_token &&
+                $order->payment_method !== 'xendit' &&
+                !$this->isXenditInvoiceUrl($order->payment_snap_token)
             ) {
 
                 try {
@@ -217,6 +232,9 @@ class OrderController extends Controller
                     'message' => 'Order not found',
                 ], 404);
             }
+
+            $this->orderPaymentSyncService->syncMidtransOrder($order);
+            $order->refresh();
 
             return response()->json([
                 'success' => true,
@@ -572,7 +590,7 @@ class OrderController extends Controller
         }
     }
 
-    public function checkPaymentStatus(int $id): JsonResponse
+    public function confirmPayment(int $id, Request $request): JsonResponse
     {
         try {
             $user = auth('sanctum')->user();
@@ -595,7 +613,7 @@ class OrderController extends Controller
                 ], 404);
             }
 
-            if ($order->payment_status === 'PAID') {
+            if ($order->payment_status !== 'PENDING') {
                 return response()->json([
                     'success' => true,
                     'message' => 'Payment already confirmed',
@@ -606,140 +624,136 @@ class OrderController extends Controller
                 ]);
             }
 
-            if ($order->payment_method === 'midtrans' || !$order->payment_method) {
-                $status = MidtransService::checkTransactionStatus($order->order_number);
-                if ($status && in_array($status['transaction_status'], ['capture', 'settlement'])) {
-                    $oldPaymentStatus = $order->payment_status;
-                    $order->update([
-                        'payment_status' => 'PAID',
-                        'payment_reference_code' => $status['transaction_id'],
-                        'payment_type' => $status['payment_type'],
-                        'status' => 'PACKING',
-                    ]);
+            if ($this->orderPaymentSyncService->syncMidtransOrder($order)) {
+                $order->refresh();
 
-                    if ($oldPaymentStatus !== 'PAID') {
-                        if (!$order->relationLoaded('orderItems')) {
-                            $order->load('orderItems');
-                        }
+                return response()->json([
+                    'success' => true,
+                    'message' => $order->payment_status === 'PAID'
+                        ? 'Payment confirmed'
+                        : 'Payment status synced',
+                    'data' => [
+                        'payment_status' => $order->payment_status,
+                        'status' => $order->status,
+                    ],
+                ]);
+            }
 
-                        $orderItems = $order->orderItems->map(function ($item) {
-                            return [
-                                'variant_id' => $item->fk_variant_id,
-                                'qty' => $item->qty,
-                                'store_id' => $item->store_id,
-                            ];
-                        })->toArray();
+            $transactionStatus = $request->input('transaction_status');
+            $transactionId = $request->input('transaction_id');
+            $paymentType = $request->input('payment_type');
 
-                        if (!empty($orderItems)) {
-                            $this->orderStockReductionService->convertReservedToActual($orderItems);
-                        }
-
-                        if ($order->fk_voucher_id) {
-                            $voucher = Voucher::find($order->fk_voucher_id);
-                            if ($voucher) {
-                                $voucher->increment('voucher_used');
-                            }
-                        }
-
-                        try {
-                            $pointService = app(PointService::class);
-                            $pointService->addPointsFromOrder($order->fk_user_id, $order->id, $order->total_amount);
-                            $pointService->deductPoints(
-                                userId: $order->fk_user_id,
-                                points: $order->points_used,
-                                orderId: $order->id,
-                                description: "Digunakan untuk pembayaran order #{$order->order_number}"
-                            );
-                        } catch (\Exception $e) {
-                            Log::error('CHECK PAYMENT: Failed to add points', [
-                                'order_id' => $order->id,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                    }
-
+            if ($order->payment_method === 'xendit') {
+                if (!$order->payment_reference_code) {
                     return response()->json([
                         'success' => true,
-                        'message' => 'Payment confirmed',
+                        'message' => 'Payment not yet confirmed',
                         'data' => [
-                            'payment_status' => 'PAID',
-                            'status' => 'PACKING',
+                            'payment_status' => $order->payment_status,
+                            'status' => $order->status,
                         ],
                     ]);
                 }
-            } elseif ($order->payment_method === 'xendit' && $order->payment_reference_code) {
+
                 $invoice = XenditService::getInvoice($order->payment_reference_code);
-                if ($invoice && ($invoice['status'] ?? null) === 'PAID') {
-                    $oldPaymentStatus = $order->payment_status;
-                    $order->update([
-                        'payment_status' => 'PAID',
-                        'status' => 'PACKING',
-                    ]);
 
-                    if ($oldPaymentStatus !== 'PAID') {
-                        if (!$order->relationLoaded('orderItems')) {
-                            $order->load('orderItems');
-                        }
-
-                        $orderItems = $order->orderItems->map(function ($item) {
-                            return [
-                                'variant_id' => $item->fk_variant_id,
-                                'qty' => $item->qty,
-                                'store_id' => $item->store_id,
-                            ];
-                        })->toArray();
-
-                        if (!empty($orderItems)) {
-                            $this->orderStockReductionService->convertReservedToActual($orderItems);
-                        }
-
-                        if ($order->fk_voucher_id) {
-                            $voucher = Voucher::find($order->fk_voucher_id);
-                            if ($voucher) {
-                                $voucher->increment('voucher_used');
-                            }
-                        }
-
-                        try {
-                            $pointService = app(PointService::class);
-                            $pointService->addPointsFromOrder($order->fk_user_id, $order->id, $order->total_amount);
-                            $pointService->deductPoints(
-                                userId: $order->fk_user_id,
-                                points: $order->points_used,
-                                orderId: $order->id,
-                                description: "Digunakan untuk pembayaran order #{$order->order_number}"
-                            );
-                        } catch (\Exception $e) {
-                            Log::error('CHECK PAYMENT: Failed to add points', [
-                                'order_id' => $order->id,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                    }
-
+                if (!$invoice || !in_array($invoice['status'] ?? null, ['PAID', 'SETTLED'], true)) {
                     return response()->json([
                         'success' => true,
-                        'message' => 'Payment confirmed',
+                        'message' => 'Payment not yet confirmed',
                         'data' => [
-                            'payment_status' => 'PAID',
-                            'status' => 'PACKING',
+                            'payment_status' => $order->payment_status,
+                            'status' => $order->status,
                         ],
                     ]);
                 }
+
+                $transactionStatus = 'PAID';
+                $transactionId = $invoice['id'] ?? $order->payment_reference_code;
+                $paymentType = $invoice['payment_method'] ?? $order->payment_type;
+            }
+
+            if (!$transactionStatus) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment not yet confirmed',
+                    'data' => [
+                        'payment_status' => $order->payment_status,
+                        'status' => $order->status,
+                    ],
+                ]);
+            }
+
+            $normalizedStatus = strtolower((string) $transactionStatus);
+            if (!in_array($normalizedStatus, ['paid', 'capture', 'settlement'], true)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment not yet confirmed',
+                    'data' => [
+                        'payment_status' => $order->payment_status,
+                        'status' => $order->status,
+                    ],
+                ]);
+            }
+
+            $order->update([
+                'payment_status' => 'PAID',
+                'payment_reference_code' => $transactionId ?? $order->payment_reference_code,
+                'payment_type' => $paymentType ?? $order->payment_type,
+                'status' => 'PACKING',
+            ]);
+
+            if (!$order->relationLoaded('orderItems')) {
+                $order->load('orderItems');
+            }
+
+            $orderItems = $order->orderItems->map(function ($item) {
+                return [
+                    'variant_id' => $item->fk_variant_id,
+                    'qty' => $item->qty,
+                    'store_id' => $item->store_id,
+                ];
+            })->toArray();
+
+            if (!empty($orderItems)) {
+                $this->orderStockReductionService->convertReservedToActual($orderItems);
+            }
+
+            if ($order->fk_voucher_id) {
+                $voucher = Voucher::find($order->fk_voucher_id);
+                if ($voucher) {
+                    $voucher->increment('voucher_used');
+                }
+            }
+
+            try {
+                $pointService = app(PointService::class);
+                $pointService->addPointsFromOrder($order->fk_user_id, $order->id, $order->total_amount);
+                $pointService->deductPoints(
+                    userId: $order->fk_user_id,
+                    points: $order->points_used,
+                    orderId: $order->id,
+                    description: "Digunakan untuk pembayaran order #{$order->order_number}"
+                );
+            } catch (\Exception $e) {
+                Log::error('CONFIRM PAYMENT: Failed to add points', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment not yet confirmed',
+                'message' => 'Payment confirmed',
                 'data' => [
-                    'payment_status' => $order->payment_status,
-                    'status' => $order->status,
+                    'payment_status' => 'PAID',
+                    'status' => 'PACKING',
                 ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to check payment status',
+                'message' => 'Failed to confirm payment',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -753,6 +767,10 @@ class OrderController extends Controller
             $pendingOrders = Order::where('fk_user_id', $userId)
                 ->where('payment_status', 'PENDING')
                 ->where('status', '!=', 'CANCELLED')
+                ->where(function ($query) {
+                    $query->whereNull('payment_method')
+                        ->orWhere('payment_method', '!=', 'xendit');
+                })
                 ->whereNotNull('payment_snap_token')
                 ->whereNull('deleted_at')
                 ->where('created_at', '>=', $cutoffTime)
@@ -770,6 +788,14 @@ class OrderController extends Controller
                     $order->refresh();
 
                     if ($order->status === 'CANCELLED' || $order->payment_status === 'FAILED') {
+                        continue;
+                    }
+
+                    if ($this->isXenditInvoiceUrl($order->payment_snap_token)) {
+                        continue;
+                    }
+
+                    if ($this->orderPaymentSyncService->syncMidtransOrder($order)) {
                         continue;
                     }
 
@@ -806,5 +832,14 @@ class OrderController extends Controller
             }
         } catch (\Exception $e) {
         }
+    }
+
+    private function isXenditInvoiceUrl(?string $value): bool
+    {
+        if (!$value) {
+            return false;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_URL) !== false && str_contains($value, 'xendit.co');
     }
 }

@@ -188,7 +188,7 @@ Route::middleware('auth:sanctum')
         Route::put('/{id}/status', [OrderController::class, 'updateStatus'])->middleware('permission:orders.update');
         Route::post('/{id}/cancel', [OrderController::class, 'cancel']);
         Route::post('/{id}/complete', [OrderController::class, 'complete']);
-        Route::post('/{id}/check-payment', [OrderController::class, 'checkPaymentStatus']);
+        Route::post('/{id}/confirm-payment', [OrderController::class, 'confirmPayment']);
     });
 
 // Point routes (authenticated only)

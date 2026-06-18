@@ -43,6 +43,7 @@ class XenditWebhookController extends Controller
 
                 switch ($status) {
                     case 'PAID':
+                    case 'SETTLED':
                         if ($oldPaymentStatus !== 'PAID') {
                             $order->update([
                                 'payment_status' => 'PAID',
@@ -133,6 +134,7 @@ class XenditWebhookController extends Controller
 
                 switch ($status) {
                     case 'PAID':
+                    case 'SETTLED':
                         $group->update(['status' => 'PAID']);
 
                         foreach ($group->orders as $order) {

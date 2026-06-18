@@ -70,6 +70,7 @@ class MidtransService
                 'order_id' => $status->order_id ?? null,
                 'transaction_id' => $status->transaction_id ?? null,
                 'status_code' => $status->status_code ?? null,
+                'gross_amount' => $status->gross_amount ?? null,
                 'expiry_time' => $status->expiry_time ?? null,
             ];
         } catch (\Exception $e) {

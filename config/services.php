@@ -22,6 +22,14 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    'xendit' => [
+        'callback_url' => env('XENDIT_CALLBACK_URL'),
+    ],
+
+    'midtrans' => [
+        'notification_url' => env('MIDTRANS_NOTIFICATION_URL'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

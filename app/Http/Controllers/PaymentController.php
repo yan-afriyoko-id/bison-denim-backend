@@ -7,6 +7,7 @@ use App\Models\UserShippingAddress;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
 use App\Services\Payment\MidtransService;
+use App\Services\Payment\OrderPaymentSyncService;
 use App\Services\Payment\XenditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,10 +16,15 @@ use Illuminate\Support\Facades\Log;
 class PaymentController extends Controller
 {
     protected OrderStockReductionService $orderStockReductionService;
+    protected OrderPaymentSyncService $orderPaymentSyncService;
 
-    public function __construct(OrderStockReductionService $orderStockReductionService)
+    public function __construct(
+        OrderStockReductionService $orderStockReductionService,
+        OrderPaymentSyncService $orderPaymentSyncService
+    )
     {
         $this->orderStockReductionService = $orderStockReductionService;
+        $this->orderPaymentSyncService = $orderPaymentSyncService;
     }
 
     /**
@@ -193,7 +199,15 @@ class PaymentController extends Controller
     {
         $successRedirectUrl = $request->input('success_redirect_url', config('app.frontend_url') . '/account/orders?tab=paid');
         $failureRedirectUrl = $request->input('failure_redirect_url', config('app.frontend_url') . '/account/orders?tab=unpaid');
-        $callbackUrl = url('/api/xendit/webhook');
+        $callbackUrl = $this->getXenditCallbackUrl();
+        $successRedirectUrl = $this->appendQueryParameters($successRedirectUrl, [
+            'xendit_return' => 'success',
+            'external_id' => $groupNumber,
+        ]);
+        $failureRedirectUrl = $this->appendQueryParameters($failureRedirectUrl, [
+            'xendit_return' => 'failed',
+            'external_id' => $groupNumber,
+        ]);
 
         $params = [
             'external_id' => $groupNumber,
@@ -249,16 +263,53 @@ class PaymentController extends Controller
 
     public function createMidtransSnap(Request $request, Order $order): JsonResponse
     {
+        $requestedPaymentMethod = $request->input('payment_method');
+        $orderUsesXendit = $order->payment_method === 'xendit' ||
+            $this->isXenditInvoiceUrl($order->payment_snap_token);
+
         if ($order->payment_status !== 'PENDING') {
             return response()->json([
                 'message' => 'Order is not payable'
             ], 422);
         }
 
+        if (
+            $requestedPaymentMethod === 'xendit' ||
+            ($orderUsesXendit && $requestedPaymentMethod !== 'midtrans')
+        ) {
+            return response()->json([
+                'message' => 'Order ini menggunakan Xendit. Silakan lanjutkan melalui invoice Xendit.'
+            ], 422);
+        }
+
+        if (
+            $requestedPaymentMethod === 'midtrans' &&
+            $orderUsesXendit
+        ) {
+            $order->update([
+                'payment_method' => 'midtrans',
+                'payment_reference_code' => null,
+                'payment_snap_token' => null,
+            ]);
+            $order->refresh();
+        }
+
         // Check if order is expired and auto-cancel if needed
         if ($order->payment_snap_token) {
             try {
                 $order->refresh();
+
+                if ($this->orderPaymentSyncService->syncMidtransOrder($order)) {
+                    $order->refresh();
+
+                    if ($order->payment_status === 'PAID') {
+                        return response()->json([
+                            'message' => 'Pembayaran sudah berhasil.',
+                            'payment_status' => $order->payment_status,
+                            'status' => $order->status,
+                        ], 422);
+                    }
+                }
 
                 if ($order->status === 'CANCELLED' && $order->payment_status === 'FAILED') {
                     return response()->json([
@@ -428,6 +479,7 @@ class PaymentController extends Controller
             $snapToken = MidtransService::createSnapToken($params);
 
             $order->update([
+                'payment_method' => 'midtrans',
                 'payment_snap_token' => $snapToken,
             ]);
 
@@ -449,7 +501,28 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        if ($order->payment_reference_code) {
+        if (
+            $order->payment_method === 'midtrans' &&
+            $order->payment_snap_token &&
+            !$this->isXenditInvoiceUrl($order->payment_snap_token)
+        ) {
+            $order->update([
+                'payment_method' => 'xendit',
+                'payment_reference_code' => null,
+                'payment_snap_token' => null,
+            ]);
+            $order->refresh();
+        }
+
+        if (
+            ($order->payment_method === 'xendit' || $this->isXenditInvoiceUrl($order->payment_snap_token)) &&
+            $order->payment_reference_code &&
+            $order->payment_snap_token
+        ) {
+            if ($order->payment_method !== 'xendit') {
+                $order->update(['payment_method' => 'xendit']);
+            }
+
             return response()->json([
                 'invoice_url' => $order->payment_snap_token,
                 'external_id' => $order->order_number,
@@ -469,7 +542,17 @@ class PaymentController extends Controller
 
         $successRedirectUrl = $request->input('success_redirect_url', config('app.frontend_url') . '/account/orders?tab=paid');
         $failureRedirectUrl = $request->input('failure_redirect_url', config('app.frontend_url') . '/account/orders?tab=unpaid');
-        $callbackUrl = url('/api/xendit/webhook');
+        $callbackUrl = $this->getXenditCallbackUrl();
+        $successRedirectUrl = $this->appendQueryParameters($successRedirectUrl, [
+            'xendit_return' => 'success',
+            'external_id' => $order->order_number,
+            'order_id' => $order->id,
+        ]);
+        $failureRedirectUrl = $this->appendQueryParameters($failureRedirectUrl, [
+            'xendit_return' => 'failed',
+            'external_id' => $order->order_number,
+            'order_id' => $order->id,
+        ]);
 
         $params = [
             'external_id' => $order->order_number,
@@ -639,5 +722,28 @@ class PaymentController extends Controller
         ]);
 
         return implode(', ', $parts) ?: '';
+    }
+
+    private function getXenditCallbackUrl(): string
+    {
+        $configuredUrl = config('services.xendit.callback_url');
+
+        return rtrim($configuredUrl ?: url('/api/xendit/webhook'), '/');
+    }
+
+    private function appendQueryParameters(string $url, array $params): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url . $separator . http_build_query($params);
+    }
+
+    private function isXenditInvoiceUrl(?string $value): bool
+    {
+        if (!$value) {
+            return false;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_URL) !== false && str_contains($value, 'xendit.co');
     }
 }
