@@ -115,6 +115,11 @@ Route::prefix('brands')->group(function () {
     Route::get('/active', [BrandController::class, 'getActive']);
 });
 
+// Public store routes (no auth required)
+Route::prefix('public/stores')->group(function () {
+    Route::get('/', [StoreController::class, 'all']);
+});
+
 // Public taxonomy lists routes (no auth required for categories/collections)
 Route::prefix('taxo-lists')->group(function () {
     Route::get('/type/{type}', [TaxoListController::class, 'getByType']);

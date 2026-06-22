@@ -104,9 +104,9 @@ class ProductRepository implements ProductRepositoryInterface
      * @param float|null $maxPrice
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getAllWithFilters(?string $sortBy = null, string $sortDirection = 'desc', ?string $search = null, array $categoryIds = [], array $brandIds = [], ?bool $isNewArrival = null, ?float $minRating = null, ?float $minPrice = null, ?float $maxPrice = null)
+    public function getAllWithFilters(?string $sortBy = null, string $sortDirection = 'desc', ?string $search = null, array $categoryIds = [], array $brandIds = [], ?int $storeId = null, ?bool $isNewArrival = null, ?float $minRating = null, ?float $minPrice = null, ?float $maxPrice = null)
     {
-        $query = $this->buildFilteredQuery($sortBy, $sortDirection, $search, $categoryIds, $brandIds, $isNewArrival, $minRating, $minPrice, $maxPrice);
+        $query = $this->buildFilteredQuery($sortBy, $sortDirection, $search, $categoryIds, $brandIds, $storeId, $isNewArrival, $minRating, $minPrice, $maxPrice);
         return $query->get();
     }
 
@@ -124,9 +124,9 @@ class ProductRepository implements ProductRepositoryInterface
      * @param float|null $maxPrice
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function paginate(int $perPage = 15, ?string $sortBy = null, string $sortDirection = 'desc', ?string $search = null, array $categoryIds = [], array $brandIds = [], ?bool $isNewArrival = null, ?float $minRating = null, ?float $minPrice = null, ?float $maxPrice = null)
+    public function paginate(int $perPage = 15, ?string $sortBy = null, string $sortDirection = 'desc', ?string $search = null, array $categoryIds = [], array $brandIds = [], ?int $storeId = null, ?bool $isNewArrival = null, ?float $minRating = null, ?float $minPrice = null, ?float $maxPrice = null)
     {
-        $query = $this->buildFilteredQuery($sortBy, $sortDirection, $search, $categoryIds, $brandIds, $isNewArrival, $minRating, $minPrice, $maxPrice);
+        $query = $this->buildFilteredQuery($sortBy, $sortDirection, $search, $categoryIds, $brandIds, $storeId, $isNewArrival, $minRating, $minPrice, $maxPrice);
         return $query->paginate($perPage);
     }
 
@@ -143,7 +143,7 @@ class ProductRepository implements ProductRepositoryInterface
      * @param float|null $maxPrice
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    private function buildFilteredQuery(?string $sortBy = null, string $sortDirection = 'desc', ?string $search = null, array $categoryIds = [], array $brandIds = [], ?bool $isNewArrival = null, ?float $minRating = null, ?float $minPrice = null, ?float $maxPrice = null)
+    private function buildFilteredQuery(?string $sortBy = null, string $sortDirection = 'desc', ?string $search = null, array $categoryIds = [], array $brandIds = [], ?int $storeId = null, ?bool $isNewArrival = null, ?float $minRating = null, ?float $minPrice = null, ?float $maxPrice = null)
     {
         $query = Product::with([
             'hasMany_category.fk_category',
@@ -177,6 +177,16 @@ class ProductRepository implements ProductRepositoryInterface
         if (!empty($brandIds)) {
             $query->whereHas('hasMany_brand', function ($q) use ($brandIds) {
                 $q->whereIn('fk_brand_id', $brandIds);
+            });
+        }
+
+        if ($storeId !== null) {
+            $query->where(function ($storeQuery) use ($storeId) {
+                $storeQuery->whereHas('stores', function ($q) use ($storeId) {
+                    $q->where('stores.id', $storeId);
+                })->orWhereHas('hasMany_variant.stockRelations', function ($q) use ($storeId) {
+                    $q->where('store_id', $storeId);
+                });
             });
         }
         

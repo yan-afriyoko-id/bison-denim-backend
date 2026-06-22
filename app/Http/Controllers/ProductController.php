@@ -78,6 +78,9 @@ class ProductController extends Controller
             Log::info($brandIds);
         }
 
+        $storeId = $request->get('store_id');
+        $storeId = $storeId !== null && $storeId !== '' ? (int) $storeId : null;
+
         // Get search query
         $search = $request->get('search');
         $search = $search ? trim($search) : null;
@@ -103,6 +106,7 @@ class ProductController extends Controller
                 $search,
                 $categoryIds,
                 $brandIds,
+                $storeId,
                 $isNewArrival,
                 $minRating,
                 $minPrice,
@@ -130,6 +134,7 @@ class ProductController extends Controller
             $search,
             $categoryIds,
             $brandIds,
+            $storeId,
             $isNewArrival,
             $minRating,
             $minPrice,
