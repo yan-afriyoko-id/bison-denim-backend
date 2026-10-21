@@ -30,6 +30,10 @@ return [
         'notification_url' => env('MIDTRANS_NOTIFICATION_URL'),
     ],
 
+    'doku' => [
+        'notification_url' => env('DOKU_NOTIFICATION_URL'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

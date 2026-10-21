@@ -15,6 +15,17 @@ class XenditWebhookController extends Controller
     public function handle(Request $request)
     {
         try {
+            $callbackToken = config('settings')['xendit_callback_token'] ?? env('XENDIT_CALLBACK_TOKEN');
+            $receivedToken = (string) $request->header('x-callback-token');
+
+            if (empty($callbackToken) || !hash_equals((string) $callbackToken, $receivedToken)) {
+                Log::error('XENDIT INVALID CALLBACK TOKEN', [
+                    'external_id' => $request->input('external_id'),
+                    'token_configured' => !empty($callbackToken),
+                ]);
+                return response()->json(['message' => 'Invalid callback token'], 401);
+            }
+
             $payload = $request->all();
             $externalId = $payload['external_id'] ?? null;
             $status = $payload['status'] ?? null;

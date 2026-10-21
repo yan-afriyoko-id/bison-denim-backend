@@ -246,6 +246,44 @@ class ConfigSeeder extends Seeder
                 'description' => 'Xendit production mode',
                 'type' => 'boolean',
             ],
+            [
+                'key' => 'xendit_callback_token',
+                'value' => '',
+                'description' => 'Xendit Callback Verification Token',
+                'type' => 'string',
+            ],
+
+            // ===== DOKU SETTINGS =====
+            [
+                'key' => 'doku_is_active',
+                'value' => 'false',
+                'description' => 'Aktifkan pembayaran DOKU',
+                'type' => 'boolean',
+            ],
+            [
+                'key' => 'doku_client_id',
+                'value' => '',
+                'description' => 'DOKU Client ID',
+                'type' => 'string',
+            ],
+            [
+                'key' => 'doku_secret_key',
+                'value' => '',
+                'description' => 'DOKU Secret Key',
+                'type' => 'string',
+            ],
+            [
+                'key' => 'doku_is_production',
+                'value' => 'false',
+                'description' => 'DOKU production mode',
+                'type' => 'boolean',
+            ],
+            [
+                'key' => 'doku_payment_due_minutes',
+                'value' => '1440',
+                'description' => 'Batas waktu pembayaran DOKU (menit)',
+                'type' => 'integer',
+            ],
 
             // ===== RAJAONGKIR SETTINGS =====
             [

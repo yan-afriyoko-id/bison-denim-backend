@@ -3,6 +3,7 @@
 namespace App\Services\Payment;
 
 use App\Models\Order;
+use App\Models\PaymentGroup;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
 use App\Services\Point\PointService;
@@ -41,11 +42,108 @@ class OrderPaymentSyncService
             return false;
         }
 
-        if ($order->payment_method === 'xendit') {
+        if (in_array($order->payment_method, ['xendit', 'doku'], true)) {
             return false;
         }
 
-        return !$this->isXenditInvoiceUrl($order->payment_snap_token);
+        return !$this->isXenditInvoiceUrl($order->payment_snap_token) &&
+            !DokuService::isCheckoutUrl($order->payment_snap_token);
+    }
+
+    public function syncDokuOrder(Order $order): bool
+    {
+        if ($order->payment_status !== 'PENDING' || $order->payment_method !== 'doku') {
+            return false;
+        }
+
+        $status = DokuService::checkStatus($order->order_number);
+
+        if (!$status) {
+            return false;
+        }
+
+        return $this->applyDokuStatus($order, $status);
+    }
+
+    /**
+     * Apply a DOKU status payload (HTTP Notification or Check Status response) to an order.
+     * FAILED is ignored on purpose: DOKU Checkout lets the customer retry on the same page.
+     */
+    public function applyDokuStatus(Order $order, array $status): bool
+    {
+        return match ($this->dokuState($status)) {
+            'SUCCESS' => $this->markPaid($order, $this->dokuPaidStatus($status)),
+            'EXPIRED' => $this->markExpired($order),
+            default => false,
+        };
+    }
+
+    public function applyDokuGroupStatus(PaymentGroup $group, array $status): bool
+    {
+        $group->loadMissing('orders.orderItems');
+
+        switch ($this->dokuState($status)) {
+            case 'SUCCESS':
+                $paidStatus = $this->dokuPaidStatus($status);
+                $expectedGross = (int) $group->orders->sum('total_amount');
+
+                if ($paidStatus['gross_amount'] !== null && $paidStatus['gross_amount'] !== $expectedGross) {
+                    Log::warning('DOKU GROSS AMOUNT MISMATCH (GROUP)', [
+                        'group_number' => $group->group_number,
+                        'expected' => $expectedGross,
+                        'received' => $paidStatus['gross_amount'],
+                    ]);
+
+                    return false;
+                }
+
+                $group->update(['status' => 'PAID']);
+
+                // Amount was verified against the group total above
+                $paidStatus['gross_amount'] = null;
+                foreach ($group->orders as $order) {
+                    $this->markPaid($order, $paidStatus);
+                }
+
+                return true;
+
+            case 'EXPIRED':
+                $group->update(['status' => 'FAILED']);
+
+                foreach ($group->orders as $order) {
+                    $this->markExpired($order);
+                }
+
+                return true;
+        }
+
+        return false;
+    }
+
+    private function dokuState(array $status): string
+    {
+        $transactionStatus = strtoupper((string) ($status['transaction']['status'] ?? ''));
+        $orderStatus = strtoupper((string) ($status['order']['status'] ?? ''));
+
+        if ($transactionStatus === 'SUCCESS') {
+            return 'SUCCESS';
+        }
+
+        if ($transactionStatus === 'EXPIRED' || $orderStatus === 'ORDER_EXPIRED') {
+            return 'EXPIRED';
+        }
+
+        return $transactionStatus;
+    }
+
+    private function dokuPaidStatus(array $status): array
+    {
+        return [
+            'gateway' => 'DOKU',
+            'gross_amount' => isset($status['order']['amount']) ? (int) $status['order']['amount'] : null,
+            'transaction_id' => $status['transaction']['original_request_id'] ?? null,
+            'payment_type' => $status['channel']['id'] ?? $status['service']['id'] ?? null,
+        ];
     }
 
     private function applyMidtransStatus(Order $order, array $status): bool
@@ -71,7 +169,7 @@ class OrderPaymentSyncService
         $receivedGross = isset($status['gross_amount']) ? (int) $status['gross_amount'] : null;
 
         if ($receivedGross !== null && $receivedGross !== (int) $order->total_amount) {
-            Log::warning('MIDTRANS STATUS SYNC GROSS AMOUNT MISMATCH', [
+            Log::warning(($status['gateway'] ?? 'MIDTRANS') . ' STATUS SYNC GROSS AMOUNT MISMATCH', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
                 'expected' => (int) $order->total_amount,
@@ -98,6 +196,10 @@ class OrderPaymentSyncService
     private function markExpired(Order $order): bool
     {
         $order->refresh();
+
+        if ($order->payment_status === 'PAID') {
+            return false;
+        }
 
         if ($order->status === 'CANCELLED' && $order->payment_status === 'FAILED') {
             return false;
@@ -185,7 +287,7 @@ class OrderPaymentSyncService
                 description: "Digunakan untuk pembayaran order #{$order->order_number}"
             );
         } catch (\Exception $e) {
-            Log::error('MIDTRANS STATUS SYNC: Failed to apply points', [
+            Log::error('PAYMENT STATUS SYNC: Failed to apply points', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);

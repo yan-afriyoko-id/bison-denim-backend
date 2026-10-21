@@ -45,6 +45,7 @@ class Order extends Model
         'courier_cost',
         'payment_method',
         'payment_reference_code',
+        'payment_type',
         'payment_snap_token',
         'payment_status',
         'invoice_note',

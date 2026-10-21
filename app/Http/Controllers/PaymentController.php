@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\UserShippingAddress;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
+use App\Services\Payment\DokuService;
 use App\Services\Payment\MidtransService;
 use App\Services\Payment\OrderPaymentSyncService;
 use App\Services\Payment\XenditService;
@@ -29,15 +30,15 @@ class PaymentController extends Controller
 
     /**
      * Create a payment for multiple orders (payment group)
-     * Supports both Midtrans (snap_token) and Xendit (invoice_url)
-     * Expects JSON: { order_ids: [1,2,3], payment_method?: "midtrans"|"xendit" }
+     * Supports Midtrans (snap_token), Xendit (invoice_url) and DOKU (payment_url)
+     * Expects JSON: { order_ids: [1,2,3], payment_method?: "midtrans"|"xendit"|"doku" }
      */
     public function createMidtransSnapForOrders(Request $request): JsonResponse
     {
         $data = $request->validate([
             'order_ids' => 'required|array|min:1',
             'order_ids.*' => 'integer|exists:orders,id',
-            'payment_method' => 'nullable|string|in:midtrans,xendit',
+            'payment_method' => 'nullable|string|in:midtrans,xendit,doku',
         ]);
 
         $paymentMethod = $data['payment_method'] ?? 'midtrans';
@@ -116,6 +117,13 @@ class PaymentController extends Controller
 
         if ($paymentMethod === 'xendit') {
             return $this->createXenditGroupPayment($request, $orders, $firstOrder, $grossAmount, $groupNumber, $phone);
+        }
+
+        if ($paymentMethod === 'doku') {
+            // DOKU limits invoice_number to 30 chars when card payments are enabled
+            $groupNumber = 'PG-' . now()->format('ymdHis') . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
+
+            return $this->createDokuGroupPayment($request, $orders, $firstOrder, $grossAmount, $groupNumber, $phone);
         }
 
         return $this->createMidtransGroupPayment($orders, $firstOrder, $itemDetails, $grossAmount, $groupNumber, $phone);
@@ -261,11 +269,57 @@ class PaymentController extends Controller
         }
     }
 
+    private function createDokuGroupPayment(Request $request, $orders, $firstOrder, int $grossAmount, string $groupNumber, string $phone): JsonResponse
+    {
+        $callbackUrl = $this->appendQueryParameters(
+            $request->input('callback_url', config('app.frontend_url') . '/account/orders?tab=paid'),
+            [
+                'doku_return' => 1,
+                'invoice_number' => $groupNumber,
+            ]
+        );
+
+        $params = $this->buildDokuParams($firstOrder, $groupNumber, $grossAmount, $callbackUrl, $phone);
+
+        try {
+            $checkout = DokuService::createCheckout($params);
+            $paymentUrl = $checkout['payment']['url'];
+
+            $paymentGroup = \App\Models\PaymentGroup::create([
+                'uuid' => (string) (\Illuminate\Support\Str::uuid() ?? ''),
+                'group_number' => $groupNumber,
+                'gross_amount' => (int) $grossAmount,
+                'payment_snap_token' => $paymentUrl,
+                'status' => 'PENDING',
+                'fk_user_id' => $firstOrder->fk_user_id ?? null,
+            ]);
+
+            foreach ($orders as $order) {
+                $paymentGroup->orders()->attach($order->id);
+
+                $order->update([
+                    'payment_method' => 'doku',
+                    'payment_reference_code' => $checkout['payment']['token_id'] ?? null,
+                ]);
+            }
+
+            return response()->json([
+                'payment_url' => $paymentUrl,
+                'invoice_number' => $groupNumber,
+                'payment_group_id' => $paymentGroup->id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal membuat pembayaran DOKU group: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function createMidtransSnap(Request $request, Order $order): JsonResponse
     {
         $requestedPaymentMethod = $request->input('payment_method');
         $orderUsesXendit = $order->payment_method === 'xendit' ||
             $this->isXenditInvoiceUrl($order->payment_snap_token);
+        $orderUsesDoku = $order->payment_method === 'doku' ||
+            DokuService::isCheckoutUrl($order->payment_snap_token);
 
         if ($order->payment_status !== 'PENDING') {
             return response()->json([
@@ -283,8 +337,17 @@ class PaymentController extends Controller
         }
 
         if (
+            $requestedPaymentMethod === 'doku' ||
+            ($orderUsesDoku && $requestedPaymentMethod !== 'midtrans')
+        ) {
+            return response()->json([
+                'message' => 'Order ini menggunakan DOKU. Silakan lanjutkan melalui halaman pembayaran DOKU.'
+            ], 422);
+        }
+
+        if (
             $requestedPaymentMethod === 'midtrans' &&
-            $orderUsesXendit
+            ($orderUsesXendit || $orderUsesDoku)
         ) {
             $order->update([
                 'payment_method' => 'midtrans',
@@ -502,7 +565,7 @@ class PaymentController extends Controller
         }
 
         if (
-            $order->payment_method === 'midtrans' &&
+            in_array($order->payment_method, ['midtrans', 'doku'], true) &&
             $order->payment_snap_token &&
             !$this->isXenditInvoiceUrl($order->payment_snap_token)
         ) {
@@ -593,6 +656,136 @@ class PaymentController extends Controller
                 'message' => 'Gagal membuat invoice Xendit: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function createDokuCheckout(Request $request, Order $order): JsonResponse
+    {
+        if ($order->payment_status !== 'PENDING') {
+            return response()->json([
+                'message' => 'Order is not payable'
+            ], 422);
+        }
+
+        // Switching from another gateway: drop its token/reference
+        if (
+            $order->payment_method !== 'doku' &&
+            $order->payment_snap_token &&
+            !DokuService::isCheckoutUrl($order->payment_snap_token)
+        ) {
+            $order->update([
+                'payment_method' => 'doku',
+                'payment_reference_code' => null,
+                'payment_snap_token' => null,
+            ]);
+            $order->refresh();
+        }
+
+        if (
+            ($order->payment_method === 'doku' || DokuService::isCheckoutUrl($order->payment_snap_token)) &&
+            $order->payment_reference_code &&
+            $order->payment_snap_token
+        ) {
+            if ($order->payment_method !== 'doku') {
+                $order->update(['payment_method' => 'doku']);
+            }
+
+            if ($this->orderPaymentSyncService->syncDokuOrder($order)) {
+                $order->refresh();
+
+                if ($order->payment_status === 'PAID') {
+                    return response()->json([
+                        'message' => 'Pembayaran sudah berhasil.',
+                        'payment_status' => $order->payment_status,
+                        'status' => $order->status,
+                    ], 422);
+                }
+
+                if ($order->status === 'CANCELLED') {
+                    return response()->json([
+                        'message' => 'Pembayaran sudah kedaluwarsa. Pesanan telah dibatalkan.'
+                    ], 422);
+                }
+            }
+
+            return response()->json([
+                'payment_url' => $order->payment_snap_token,
+                'invoice_number' => $order->order_number,
+            ]);
+        }
+
+        if (!$order->relationLoaded('user')) {
+            $order->load('user');
+        }
+
+        $phone = $this->getPhoneWithFallback($order);
+        $phone = $this->formatPhoneNumber($phone);
+
+        $callbackUrl = $this->appendQueryParameters(
+            $request->input('callback_url', config('app.frontend_url') . '/account/orders?tab=paid'),
+            [
+                'doku_return' => 1,
+                'invoice_number' => $order->order_number,
+                'order_id' => $order->id,
+            ]
+        );
+
+        $params = $this->buildDokuParams($order, $order->order_number, (int) $order->total_amount, $callbackUrl, $phone);
+
+        try {
+            $checkout = DokuService::createCheckout($params);
+
+            $order->update([
+                'payment_method' => 'doku',
+                'payment_reference_code' => $checkout['payment']['token_id'] ?? null,
+                'payment_snap_token' => $checkout['payment']['url'],
+            ]);
+
+            return response()->json([
+                'payment_url' => $checkout['payment']['url'],
+                'invoice_number' => $order->order_number,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal membuat pembayaran DOKU: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function buildDokuParams(Order $order, string $invoiceNumber, int $amount, string $callbackUrl, string $phone): array
+    {
+        $params = [
+            'order' => [
+                'amount' => max(0, $amount),
+                'invoice_number' => $invoiceNumber,
+                'currency' => 'IDR',
+                'callback_url' => $callbackUrl,
+                'auto_redirect' => true,
+            ],
+            'payment' => [
+                'payment_due_date' => DokuService::paymentDueMinutes(),
+            ],
+            'customer' => array_filter([
+                'id' => $order->fk_user_id ? (string) $order->fk_user_id : null,
+                'name' => mb_substr(trim($order->shipping_first_name . ' ' . ($order->shipping_last_name ?? '')), 0, 255),
+                'email' => $order->contact_email ? mb_substr($order->contact_email, 0, 128) : null,
+                // DOKU expects 628xxxxxxxxx without the plus sign
+                'phone' => $phone !== '' ? substr(ltrim($phone, '+'), 0, 16) : null,
+                'address' => $order->shipping_address,
+                'city' => $order->shipping_city,
+                'state' => $order->shipping_province,
+                'postcode' => $order->shipping_postal_code,
+                'country' => 'ID',
+            ]),
+        ];
+
+        $notificationUrl = config('services.doku.notification_url');
+        if ($notificationUrl) {
+            $params['additional_info'] = [
+                'override_notification_url' => $notificationUrl,
+            ];
+        }
+
+        return $params;
     }
 
     /**

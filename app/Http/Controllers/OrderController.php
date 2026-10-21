@@ -6,6 +6,7 @@ use App\Http\Resources\OrderResource\OrderResource;
 use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Order\OrderStockReductionService;
+use App\Services\Payment\DokuService;
 use App\Services\Payment\MidtransService;
 use App\Services\Payment\OrderPaymentSyncService;
 use App\Services\Payment\XenditService;
@@ -140,8 +141,9 @@ class OrderController extends Controller
                 $order->status === 'PENDING' &&
                 $order->payment_status === 'PENDING' &&
                 $order->payment_snap_token &&
-                $order->payment_method !== 'xendit' &&
-                !$this->isXenditInvoiceUrl($order->payment_snap_token)
+                !in_array($order->payment_method, ['xendit', 'doku'], true) &&
+                !$this->isXenditInvoiceUrl($order->payment_snap_token) &&
+                !DokuService::isCheckoutUrl($order->payment_snap_token)
             ) {
 
                 try {
@@ -639,6 +641,22 @@ class OrderController extends Controller
                 ]);
             }
 
+            if ($order->payment_method === 'doku') {
+                $this->orderPaymentSyncService->syncDokuOrder($order);
+                $order->refresh();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $order->payment_status === 'PAID'
+                        ? 'Payment confirmed'
+                        : 'Payment not yet confirmed',
+                    'data' => [
+                        'payment_status' => $order->payment_status,
+                        'status' => $order->status,
+                    ],
+                ]);
+            }
+
             $transactionStatus = $request->input('transaction_status');
             $transactionId = $request->input('transaction_id');
             $paymentType = $request->input('payment_type');
@@ -769,7 +787,7 @@ class OrderController extends Controller
                 ->where('status', '!=', 'CANCELLED')
                 ->where(function ($query) {
                     $query->whereNull('payment_method')
-                        ->orWhere('payment_method', '!=', 'xendit');
+                        ->orWhereNotIn('payment_method', ['xendit', 'doku']);
                 })
                 ->whereNotNull('payment_snap_token')
                 ->whereNull('deleted_at')
@@ -791,7 +809,10 @@ class OrderController extends Controller
                         continue;
                     }
 
-                    if ($this->isXenditInvoiceUrl($order->payment_snap_token)) {
+                    if (
+                        $this->isXenditInvoiceUrl($order->payment_snap_token) ||
+                        DokuService::isCheckoutUrl($order->payment_snap_token)
+                    ) {
                         continue;
                     }
 

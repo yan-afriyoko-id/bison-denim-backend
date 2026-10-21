@@ -31,6 +31,7 @@ use App\Http\Controllers\BrandProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DokuWebhookController;
 use App\Http\Controllers\MainBannerController;
 use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\OrderController;
@@ -165,9 +166,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments/groups', [PaymentController::class, 'createMidtransSnapForOrders']);
     Route::post('/orders/{order}/pay/midtrans', [PaymentController::class, 'createMidtransSnap']);
     Route::post('/orders/{order}/pay/xendit', [PaymentController::class, 'createXenditInvoice']);
+    Route::post('/orders/{order}/pay/doku', [PaymentController::class, 'createDokuCheckout']);
 });
 Route::post('/midtrans/webhook', [MidtransWebhookController::class, 'handle']);
 Route::post('/xendit/webhook', [XenditWebhookController::class, 'handle']);
+Route::post('/doku/notification', [DokuWebhookController::class, 'handle']);
+Route::get('/payment/gateways', function () {
+    $settings = config('settings');
+
+    $gateways = array_values(array_filter(
+        ['midtrans', 'xendit', 'doku'],
+        fn ($gateway) => filter_var($settings[$gateway . '_is_active'] ?? false, FILTER_VALIDATE_BOOLEAN)
+    ));
+
+    return response()->json([
+        'gateways' => $gateways,
+    ]);
+});
 Route::get('/payment/midtrans/config', function () {
     $settings = config('settings');
 
