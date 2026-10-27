@@ -102,6 +102,8 @@ class CartCalculationService
                     'product_name' => $variant->product->name ?? 'Product not available',
                     'variant_name' => $variant->variant_name ?? 'Unknown Variant',
                     'qty' => $qty,
+                    'in_stock' => false,
+                    'available_stock' => 0,
                     'reason' => $variant && $variant->trashed()
                         ? 'Product has been removed'
                         : 'Product not active',

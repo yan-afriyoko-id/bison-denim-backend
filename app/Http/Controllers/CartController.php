@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\CartStockException;
 use App\Http\Resources\CartResource\CartResource;
 use App\Repositories\CartRepository;
 use App\Services\Cart\CartCalculationService;
@@ -72,6 +73,8 @@ class CartController extends Controller
                 'message' => 'Validation error',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (CartStockException $e) {
+            return $this->stockErrorResponse($e);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -108,6 +111,14 @@ class CartController extends Controller
                 'message' => 'Item updated',
                 'data' => new CartResource($cart),
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (CartStockException $e) {
+            return $this->stockErrorResponse($e);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -168,5 +179,18 @@ class CartController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function stockErrorResponse(CartStockException $e): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'errors' => ['qty' => [$e->getMessage()]],
+            'data' => [
+                'available_stock' => $e->availableStock,
+                'in_cart_qty' => $e->inCartQty,
+            ],
+        ], 422);
     }
 }
