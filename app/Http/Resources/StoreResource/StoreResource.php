@@ -28,6 +28,8 @@ class StoreResource extends JsonResource
             'status' => $this->status,
             'description' => $this->description,
             'city_id' => $this->city_id,
+            'district' => $this->district,
+            'district_id' => $this->district_id,
             
             // Relationships
             'products' => $this->whenLoaded('products', function () {

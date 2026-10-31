@@ -11,7 +11,15 @@ class CostService
     {
         try {
             $methodUrl = '/calculate/district/domestic-cost';
-            $origin = $origin ?? config('rajaongkir.origin_city_code');
+            // The district endpoint needs district IDs. A store without a district
+            // falls back to the configured origin district, then the legacy city code.
+            if (!$origin) {
+                $origin = config('rajaongkir.origin_district_code');
+            }
+            if (!$origin) {
+                Log::warning('RajaOngkir origin district not configured; falling back to origin_city_code, shipping costs may be wrong.');
+                $origin = config('rajaongkir.origin_city_code');
+            }
             
             $postInput = [
                 'origin' => $origin,

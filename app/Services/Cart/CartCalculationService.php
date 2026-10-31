@@ -217,6 +217,7 @@ class CartCalculationService
                     'id' => $selectedStore->id,
                     'name' => $selectedStore->name,
                     'city_id' => $selectedStore->city_id,
+                    'district_id' => $selectedStore->district_id,
                     'city' => $selectedStore->city,
                     'province' => $selectedStore->province,
                 ] : null,

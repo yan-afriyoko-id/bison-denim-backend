@@ -24,6 +24,8 @@ class Store extends Model
         'status',
         'description',
         'city_id',
+        'district',
+        'district_id',
     ];
 
     /**

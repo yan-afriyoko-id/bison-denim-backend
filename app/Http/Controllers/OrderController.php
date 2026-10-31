@@ -503,6 +503,12 @@ class OrderController extends Controller
                 ],
             ], 200);
         } catch (\Exception $e) {
+            Log::error('CANCEL ORDER: Failed', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal membatalkan pesanan',
@@ -584,6 +590,12 @@ class OrderController extends Controller
                 ],
             ], 200);
         } catch (\Exception $e) {
+            Log::error('COMPLETE ORDER: Failed', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menyelesaikan pesanan',

@@ -44,6 +44,8 @@ class UpdateStoreRequest extends FormRequest
             'status' => ['nullable', 'in:ACTIVE,INACTIVE'],
             'description' => ['nullable', 'string'],
             'city_id' => ['nullable', 'integer', 'min:1'],
+            'district' => ['nullable', 'string', 'max:100'],
+            'district_id' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
