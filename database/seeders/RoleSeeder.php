@@ -50,11 +50,13 @@ class RoleSeeder extends Seeder
         });
         $manager->syncPermissions($managerPermissions);
 
-        // User gets only read permissions (configs hold payment gateway secrets, so never expose them to customers)
-        $userPermissions = $allPermissions->filter(function ($permission) {
+        // User gets only catalog read permissions. Configs hold payment gateway secrets, and
+        // orders/users/permissions/vouchers.read expose every customer's data or admin-only voucher lists.
+        $userExcluded = ['configs.read', 'orders.read', 'users.read', 'permissions.read', 'vouchers.read'];
+        $userPermissions = $allPermissions->filter(function ($permission) use ($userExcluded) {
             return str_ends_with($permission->name, '.read')
                 && !str_starts_with($permission->name, 'roles.')
-                && $permission->name !== 'configs.read';
+                && !in_array($permission->name, $userExcluded, true);
         });
         $user->syncPermissions($userPermissions);
     }
